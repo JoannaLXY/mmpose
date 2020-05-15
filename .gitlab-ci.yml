@@ -27,8 +27,8 @@ test:
     - echo "Start building..."
     - pip install pillow==6.2.2
     - pip install -e .
-    - python -c "import mmtemplate; print(mmtemplate.__version__)"
+    - python -c "import mmpose; print(mmpose.__version__)"
     # - echo "Start testing..."
     # - pip install pytest coverage
-    # - coverage run --source mmtemplate -m pytest tests/
+    # - coverage run --branch --source mmpose -m pytest tests/
     # - coverage report -m
