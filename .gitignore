@@ -106,7 +106,7 @@ venv.bak/
 
 # custom
 mmpose/version.py
-data
+/data
 .vscode
 .idea
 *.pkl
@@ -116,3 +116,5 @@ work_dirs/
 
 # Pytorch
 *.pth
+
+*.DS_Store
