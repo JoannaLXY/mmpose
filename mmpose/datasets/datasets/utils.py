@@ -1,7 +1,3 @@
-import json
-import os
-import time
-
 import numpy as np
 
 
@@ -14,6 +10,7 @@ class NullWriter(object):
 
     def flush(self):
         pass
+
 
 class HeatmapGenerator():
     """Heatmap Generator.
