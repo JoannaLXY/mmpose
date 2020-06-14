@@ -34,7 +34,7 @@ class TopDownBaseDataset(Dataset, metaclass=ABCMeta):
                  pipeline,
                  test_mode=False):
 
-        # set group flag for the sampler #@ 删除了吧
+        # TODO: set group flag for the sampler
         self.image_info = {}
         self.ann_info = {}
 

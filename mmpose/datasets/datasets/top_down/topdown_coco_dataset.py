@@ -167,8 +167,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
     def _xywh2cs(self, x, y, w, h):
         """this coder encodes bbox(x,y,w,w) into (center, scale)
         Returns:
-            center??
-            scale??
+            center (np.ndarray[float32](2,)): center of the bbox (x, y).
+            scale (np.ndarray[float32](2,)): scale of the bbox w & h.
         """
         aspect_ratio = self.ann_info['image_size'][0] / self.ann_info[
             'image_size'][1]
