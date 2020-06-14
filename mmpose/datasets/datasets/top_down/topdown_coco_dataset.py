@@ -100,10 +100,13 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return gt_db
 
     def _load_coco_keypoint_annotation_kernal(self, index):
-        """
-        bbox:[x1, y1, w, h]
-        :param index: coco image id
-        :return: db entry
+        """load annotation from COCOAPI
+        Note:
+            bbox:[x1, y1, w, h]
+        Args:
+            index: coco image id
+        Returns:
+            db entry
         """
         im_ann = self.coco.loadImgs(index)[0]
         width = im_ann['width']
@@ -133,7 +136,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 continue
 
             joints_3d = np.zeros((num_joints, 3), dtype=np.float)
-            joints_3d_vis = np.zeros((num_joints, 3), dtype=np.float)
+            joints_3d_visible = np.zeros((num_joints, 3), dtype=np.float)
             for ipt in range(num_joints):
                 joints_3d[ipt, 0] = obj['keypoints'][ipt * 3 + 0]
                 joints_3d[ipt, 1] = obj['keypoints'][ipt * 3 + 1]
@@ -141,9 +144,9 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 t_vis = obj['keypoints'][ipt * 3 + 2]
                 if t_vis > 1:
                     t_vis = 1
-                joints_3d_vis[ipt, 0] = t_vis
-                joints_3d_vis[ipt, 1] = t_vis
-                joints_3d_vis[ipt, 2] = 0
+                joints_3d_visible[ipt, 0] = t_vis
+                joints_3d_visible[ipt, 1] = t_vis
+                joints_3d_visible[ipt, 2] = 0
             center, scale = self._box2cs(obj['clean_bbox'][:4])
             rec.append({
                 'image_file': self.image_path_from_index(index),
@@ -151,7 +154,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'scale': scale,
                 'rotation': 0,
                 'joints_3d': joints_3d,
-                'joints_3d_vis': joints_3d_vis,
+                'joints_3d_visible': joints_3d_visible,
                 'dataset': 'coco',
             })
 
@@ -162,6 +165,11 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return self._xywh2cs(x, y, w, h)
 
     def _xywh2cs(self, x, y, w, h):
+        """this coder encodes bbox(x,y,w,w) into (center, scale)
+        Returns:
+            center??
+            scale??
+        """
         aspect_ratio = self.ann_info['image_size'][0] / self.ann_info[
             'image_size'][1]
         center = np.zeros((2), dtype=np.float32)
@@ -220,7 +228,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
             center, scale = self._box2cs(box)
             joints_3d = np.zeros((num_joints, 3), dtype=np.float)
-            joints_3d_vis = np.ones((num_joints, 3), dtype=np.float)
+            joints_3d_visible = np.ones((num_joints, 3), dtype=np.float)
             kpt_db.append({
                 'image': img_name,
                 'center': center,
@@ -230,7 +238,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'rotation': 0,
                 'imgnum': 0,
                 'joints_3d': joints_3d,
-                'joints_3d_vis': joints_3d_vis,
+                'joints_3d_visible': joints_3d_visible,
             })
         print('=> Total boxes after fliter low score@{}: {}'.format(
             self.image_thre, num_boxes))

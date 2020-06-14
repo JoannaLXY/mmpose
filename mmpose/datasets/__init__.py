@@ -1,5 +1,5 @@
-from .datasets import TopDownCocoDataset
 from .builder import build_dataloader, build_dataset
+from .datasets import TopDownCocoDataset
 from .pipelines import Compose
 from .samplers import DistributedSampler
 

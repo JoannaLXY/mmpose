@@ -5,6 +5,7 @@ class NullWriter(object):
     """Writer placeholder.
 
     """
+
     def write(self, arg):
         pass
 
@@ -20,6 +21,7 @@ class HeatmapGenerator():
             num_joints (int): Number of joints to predict.
             sigma (int): Gaussian sigma of heatmaps.
     """
+
     def __init__(self, output_res, num_joints, sigma=-1):
         self.output_res = output_res
         self.num_joints = num_joints
@@ -68,6 +70,7 @@ class ScaleAwareHeatmapGenerator():
             output_res (int): Resolution of the output heatmap.
             num_joints (int): Number of joints to predict.
     """
+
     def __init__(self, output_res, num_joints):
         self.output_res = output_res
         self.num_joints = num_joints
@@ -120,6 +123,7 @@ class JointsGenerator():
             tag_per_joint (bool): Option to use separate tags
                 for each joint. If false, use a single tag map.
     """
+
     def __init__(self, max_num_people, num_joints, output_res, tag_per_joint):
         self.max_num_people = max_num_people
         self.num_joints = num_joints

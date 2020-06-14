@@ -1,10 +1,10 @@
 import copy
 import logging
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 from torch.utils.data import Dataset
 
-from abc import ABCMeta, abstractmethod
 from mmpose.datasets.pipelines import Compose
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class TopDownBaseDataset(Dataset, metaclass=ABCMeta):
                  pipeline,
                  test_mode=False):
 
-        # set group flag for the sampler
+        # set group flag for the sampler #@ 删除了吧
         self.image_info = {}
         self.ann_info = {}
 
