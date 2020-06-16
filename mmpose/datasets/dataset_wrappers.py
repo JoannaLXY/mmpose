@@ -16,7 +16,7 @@ class ConcatDataset(_ConcatDataset):
     """
 
     def __init__(self, datasets):
-        super(ConcatDataset, self).__init__(datasets)
+        super().__init__(datasets)
         self.CLASSES = datasets[0].CLASSES
         if hasattr(datasets[0], 'flag'):
             flags = []
@@ -26,10 +26,10 @@ class ConcatDataset(_ConcatDataset):
 
 
 @DATASETS.register_module()
-class RepeatDataset(object):
+class RepeatDataset():
     """A wrapper of repeated dataset.
 
-    The length of repeated dataset will be `times` larger than the original
+    The times of repeated dataset will be `times` larger than the original
     dataset. This is useful when the data loading time is long but the dataset
     is small. Using RepeatDataset can reduce the data loading time between
     epochs.

@@ -1,5 +1,4 @@
 import copy
-import logging
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -7,7 +6,6 @@ from torch.utils.data import Dataset
 
 from mmpose.datasets.pipelines import Compose
 
-logger = logging.getLogger(__name__)
 
 
 class TopDownBaseDataset(Dataset, metaclass=ABCMeta):

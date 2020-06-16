@@ -1,9 +1,8 @@
-import logging
 import os
 import random
 import sys
 
-import json_tricks as json
+import json
 import numpy as np
 from pycocotools.coco import COCO
 
@@ -11,7 +10,6 @@ from mmpose.datasets.builder import DATASETS
 from ..utils import NullWriter
 from .topdown_base_dataset import TopDownBaseDataset
 
-logger = logging.getLogger(__name__)
 
 
 @DATASETS.register_module
@@ -205,8 +203,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
             all_boxes = json.load(f)
 
         if not all_boxes:
-            logger.error('=> Load %s fail!' % self.bbox_file)
-            return None
+            raise ValueError('=> Load %s fail!' % self.bbox_file)
 
         print('=> Total boxes: {}'.format(len(all_boxes)))
 
