@@ -1,9 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mmpose.core.post_processing.shared_transforms import (affine_transform,
-                                                           get_3rd_point,
-                                                           rotate_point)
+from mmpose.core import affine_transform, get_3rd_point, rotate_point
 
 
 def test_get_3rd_point():
