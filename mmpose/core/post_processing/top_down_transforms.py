@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------
-# Copyright (c) Microsoft
-# Licensed under the MIT License.
-# Written by Bin Xiao (Bin.Xiao@microsoft.com)
+# Adapted from https://github.com/leoxiaobin/deep-high-resolution-net.pytorch
+# Original licence: Copyright (c) Microsoft, under the MIT License.
 # ------------------------------------------------------------------------------
 
 import cv2
@@ -14,7 +13,7 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
     """Flip human joints horizontally.
 
     Note:
-        num_keypoints: K (k)
+        num_keypoints: K
 
     Args:
         joints_3d (np.ndarray([K, 3])): Coordinates of keypoints.
@@ -23,21 +22,24 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
         flip_pairs (list[tuple()): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
     Returns:
-        flipped joints_3d & joints_3d_visible
+        flipped joints_3d, joints_3d_visible
     """
 
     assert len(joints_3d) == len(joints_3d_visible)
     assert img_width > 0
 
-    # Flip horizontal
+    # Flip horizontally
     joints_3d[:, 0] = img_width - 1 - joints_3d[:, 0]
 
     # Change left-right parts
     for pair in flip_pairs:
-        joints_3d[pair[0], :], joints_3d[pair[1], :] = \
-            joints_3d[pair[1], :], joints_3d[pair[0], :].copy()
-        joints_3d_visible[pair[0], :], joints_3d_visible[pair[1], :] = \
-            joints_3d_visible[pair[1], :], joints_3d_visible[pair[0], :].copy()
+        tmp = joints_3d[pair[0], :].copy()
+        joints_3d[pair[0], :] = joints_3d[pair[1], :]
+        joints_3d[pair[1], :] = tmp
+
+        tmp_vis = joints_3d_visible[pair[0], :].copy()
+        joints_3d_visible[pair[0], :] = joints_3d_visible[pair[1], :]
+        joints_3d_visible[pair[1], :] = tmp_vis
 
     return joints_3d * joints_3d_visible, joints_3d_visible
 
@@ -46,8 +48,8 @@ def flip_back(output_flipped, flip_pairs):
     """Flip the flipped heatmaps back to the original form.
 
     Note:
-        batch_size: N (n)
-        num_keypoints: K (k)
+        batch_size: N
+        num_keypoints: K
         heatmap height: h
         heatmap width: w
 
@@ -78,7 +80,7 @@ def transform_preds(coords, center, scale, output_size):
     then affine transform the src coords to the dst coords.
 
     Note:
-        num_keypoints: K (k)
+        num_keypoints: K
     Args:
         coords (np.ndarray[K, 2]): Predicted keypoint location.
         center (np.ndarray[2, ]): Center of the bounding box (x, y).
