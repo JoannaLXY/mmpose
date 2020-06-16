@@ -7,7 +7,6 @@ from torch.utils.data import Dataset
 from mmpose.datasets.pipelines import Compose
 
 
-
 class TopDownBaseDataset(Dataset, metaclass=ABCMeta):
     """Base class for top-down datasets.
 

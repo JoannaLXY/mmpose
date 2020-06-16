@@ -1,15 +1,13 @@
+import json
 import os
 import random
 import sys
 
-import json
 import numpy as np
 from pycocotools.coco import COCO
 
 from mmpose.datasets.builder import DATASETS
-from ..utils import NullWriter
 from .topdown_base_dataset import TopDownBaseDataset
-
 
 
 @DATASETS.register_module
@@ -58,11 +56,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
             ],
             dtype=np.float32).reshape((self.ann_info['num_joints'], 1))
 
-        nullwrite = NullWriter()
-        oldstdout = sys.stdout
-        sys.stdout = nullwrite
         self.coco = COCO(ann_file)
-        sys.stdout = oldstdout
+
 
         cats = [
             cat['name'] for cat in self.coco.loadCats(self.coco.getCatIds())
