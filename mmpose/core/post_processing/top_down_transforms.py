@@ -28,17 +28,22 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
     assert len(joints_3d) == len(joints_3d_visible)
     assert img_width > 0
 
+    joints_3d_copy = joints_3d.copy()
+    joints_3d_visible_copy = joints_3d_visible.copy()
+
     # Flip horizontally
-    joints_3d[:, 0] = img_width - 1 - joints_3d[:, 0]
+    joints_3d[:, 0] = img_width - 1 - joints_3d_copy[:, 0]
+    joints_3d_copy = joints_3d.copy()
 
     # Change left-right parts
     for pair in flip_pairs:
         tmp = joints_3d[pair[0], :].copy()
-        joints_3d[pair[0], :] = joints_3d[pair[1], :]
+        joints_3d[pair[0], :] = joints_3d_copy[pair[1], :].copy()
         joints_3d[pair[1], :] = tmp
 
         tmp_vis = joints_3d_visible[pair[0], :].copy()
-        joints_3d_visible[pair[0], :] = joints_3d_visible[pair[1], :]
+        joints_3d_visible[pair[0], :] = joints_3d_visible_copy[
+            pair[1], :].copy()
         joints_3d_visible[pair[1], :] = tmp_vis
 
     return joints_3d * joints_3d_visible, joints_3d_visible
@@ -50,11 +55,11 @@ def flip_back(output_flipped, flip_pairs):
     Note:
         batch_size: N
         num_keypoints: K
-        heatmap height: h
-        heatmap width: w
+        heatmap height: H
+        heatmap width: W
 
     Args:
-        ouput_flipped (np.ndarray[N, K, h, w]): The output heatmaps obtained
+        ouput_flipped (np.ndarray[N, K, H, W]): The output heatmaps obtained
             from the flipped images.
         flip_pairs (list[tuple()): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
@@ -64,7 +69,8 @@ def flip_back(output_flipped, flip_pairs):
     assert output_flipped.ndim == 4, \
         'output_flipped should be [batch_size, num_keypoints, height, width]'
 
-    output_flipped = output_flipped[:, :, :, ::-1]
+    output_flipped_copy = output_flipped.copy()
+    output_flipped = output_flipped_copy[:, :, :, ::-1]
     for pair in flip_pairs:
         tmp = output_flipped[:, pair[0], :, :].copy()
         output_flipped[:, pair[0], :, :] = output_flipped[:, pair[1], :, :]
@@ -96,7 +102,7 @@ def transform_preds(coords, center, scale, output_size):
     assert len(scale) == 2
     assert len(output_size) == 2
 
-    target_coords = np.zeros(coords.shape)
+    target_coords = np.zeros_like(coords)
     trans = get_affine_transform(center, scale, 0, output_size, inv=1)
     for p in range(coords.shape[0]):
         target_coords[p, 0:2] = affine_transform(coords[p, 0:2], trans)

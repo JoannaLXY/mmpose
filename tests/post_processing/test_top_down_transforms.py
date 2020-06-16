@@ -18,6 +18,11 @@ def test_flip_back():
     heatmaps_new = flip_back(flipped_heatmaps, [[0, 1]])
     assert_array_almost_equal(heatmaps, heatmaps_new)
 
+    ori_heatmaps = heatmaps.copy()
+    # test in-place flip
+    heatmaps = heatmaps[:, :, :, ::-1]
+    assert_array_almost_equal(ori_heatmaps[:, :, :, ::-1], heatmaps)
+
 
 def test_transform_preds():
     coords = np.random.random([2, 2])
