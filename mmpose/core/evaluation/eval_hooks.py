@@ -16,6 +16,7 @@ class EvalHook(Hook):
         if not isinstance(dataloader, DataLoader):
             raise TypeError('dataloader must be a pytorch DataLoader, but got'
                             f' {type(dataloader)}')
+
         self.dataloader = dataloader
         self.interval = interval
         self.eval_kwargs = eval_kwargs
@@ -28,8 +29,8 @@ class EvalHook(Hook):
         self.evaluate(runner, results)
 
     def evaluate(self, runner, results):
-        eval_res = self.dataloader.dataset.evaluate(
-            results, logger=runner.logger, **self.eval_kwargs)
+        eval_res = self.dataloader.dataset.evaluate(results, runner.work_dir,
+                                                    **self.eval_kwargs)
         for name, val in eval_res.items():
             runner.log_buffer.output[name] = val
         runner.log_buffer.ready = True
