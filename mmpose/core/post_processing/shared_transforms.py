@@ -30,6 +30,8 @@ def get_3rd_point(a, b):
     Returns:
         The 3rd point (np.ndarray)
     """
+    assert len(a) == 2
+    assert len(b) == 2
     direction = a - b
     third_pt = b + np.array([-direction[1], direction[0]], dtype=np.float32)
 
