@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import sys
 
 import numpy as np
 from pycocotools.coco import COCO
@@ -57,7 +56,6 @@ class TopDownCocoDataset(TopDownBaseDataset):
             dtype=np.float32).reshape((self.ann_info['num_joints'], 1))
 
         self.coco = COCO(ann_file)
-
 
         cats = [
             cat['name'] for cat in self.coco.loadCats(self.coco.getCatIds())
