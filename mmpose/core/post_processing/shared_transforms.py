@@ -11,6 +11,7 @@ def affine_transform(pt, trans_mat):
     Returns:
         Transformed points (np.ndarray)
     """
+    assert len(pt) == 2
     new_pt = np.array(trans_mat) @ np.array([pt[0], pt[1], 1.])
 
     return new_pt
@@ -29,8 +30,8 @@ def get_3rd_point(a, b):
     Returns:
         The 3rd point (np.ndarray)
     """
-    direct = a - b
-    third_pt = b + np.array([-direct[1], direct[0]], dtype=np.float32)
+    direction = a - b
+    third_pt = b + np.array([-direction[1], direction[0]], dtype=np.float32)
 
     return third_pt
 
