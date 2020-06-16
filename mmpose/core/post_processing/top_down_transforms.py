@@ -61,7 +61,7 @@ def flip_back(output_flipped, flip_pairs):
     Returns:
         ouput_flipped: the heatmaps are flipped back to the original images.
     """
-    assert output_flipped.ndim == 4,\
+    assert output_flipped.ndim == 4, \
         'output_flipped should be [batch_size, num_keypoints, height, width]'
 
     output_flipped = output_flipped[:, :, :, ::-1]
@@ -116,7 +116,7 @@ def get_affine_transform(center,
         center (np.ndarray[2, ]): Center of the bounding box (x, y).
         scale (np.ndarray[2, ]): Scale of the bounding box
             wrt height/width.
-        rot (float): Rotation factor.
+        rot (float): Rotation angle (degree).
         output_size (np.ndarray[2, ]): Size of the destination heatmaps.
         shift (0-100%): Shift translation ratio wrt the width/height.
             Default np.array([0, 0].
