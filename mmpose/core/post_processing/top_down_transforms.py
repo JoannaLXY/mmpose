@@ -30,21 +30,17 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
 
     joints_3d_copy = joints_3d.copy()
     joints_3d_visible_copy = joints_3d_visible.copy()
-
     # Flip horizontally
     joints_3d[:, 0] = img_width - 1 - joints_3d_copy[:, 0]
     joints_3d_copy = joints_3d.copy()
 
     # Change left-right parts
     for pair in flip_pairs:
-        tmp = joints_3d[pair[0], :].copy()
-        joints_3d[pair[0], :] = joints_3d_copy[pair[1], :].copy()
-        joints_3d[pair[1], :] = tmp
+        joints_3d[pair[0], :] = joints_3d_copy[pair[1], :]
+        joints_3d[pair[1], :] = joints_3d_copy[pair[0], :]
 
-        tmp_vis = joints_3d_visible[pair[0], :].copy()
-        joints_3d_visible[pair[0], :] = joints_3d_visible_copy[
-            pair[1], :].copy()
-        joints_3d_visible[pair[1], :] = tmp_vis
+        joints_3d_visible[pair[0], :] = joints_3d_visible_copy[pair[1], :]
+        joints_3d_visible[pair[1], :] = joints_3d_visible_copy[pair[0], :]
 
     return joints_3d * joints_3d_visible, joints_3d_visible
 
@@ -71,10 +67,12 @@ def flip_back(output_flipped, flip_pairs):
 
     output_flipped_copy = output_flipped.copy()
     output_flipped = output_flipped_copy[:, :, :, ::-1]
+    output_flipped_copy = output_flipped.copy()
     for pair in flip_pairs:
-        tmp = output_flipped[:, pair[0], :, :].copy()
-        output_flipped[:, pair[0], :, :] = output_flipped[:, pair[1], :, :]
-        output_flipped[:, pair[1], :, :] = tmp
+        output_flipped[:, pair[0], :, :] = output_flipped_copy[:,
+                                                               pair[1], :, :]
+        output_flipped[:, pair[1], :, :] = output_flipped_copy[:,
+                                                               pair[0], :, :]
     return output_flipped
 
 
