@@ -6,23 +6,23 @@ from mmpose.core.post_processing import transform_preds
 def _calc_distances(preds, targets, normalize):
     '''Calculate the normalized distances between preds and target.
     Note:
-        batch_size: N (n)
-        num_keypoints: K (k)
+        batch_size: N
+        num_keypoints: K
 
     Args:
         preds (np.ndarray[NxKx2]): Predicted keypoint location.
         target (np.ndarray[NxKx2]): Groundtruth keypoint location.
-        normalize (np.ndarray[Nx2]): Normalization factor (heatmap_size/10).
+        normalize (np.ndarray[Nx2]): Typical value is heatmap_size/10
 
     Returns:
         distances (np.ndarray[KxN]): The normalized distances.
         If target keypoints are missing, the distance is -1.
     '''
-
-    distances = np.zeros((preds.shape[1], preds.shape[0]))
+    N, K, _ = preds.shape
+    distances = np.zeros((K, N))
     eps = np.finfo(np.float32).eps
-    for n in range(preds.shape[0]):
-        for k in range(preds.shape[1]):
+    for n in range(N):
+        for k in range(K):
             if targets[n, k, 0] > eps and targets[n, k, 1] > eps:
                 normed_preds = preds[n, k, :] / normalize[n]
                 normed_targets = targets[n, k, :] / normalize[n]
@@ -37,7 +37,7 @@ def _distance_acc(distances, thr=0.5):
     while ignoring distances values with -1.
 
     Note:
-        batch_size: N (n)
+        batch_size: N
     Args:
         distances (np.ndarray[N,]): The normalized distances.
         thr (float): Threshold of the distances.
@@ -59,13 +59,13 @@ def _get_max_preds(heatmaps):
     '''Get keypoint predictions from score maps.
 
     Note:
-        batch_size: N (n)
-        num_keypoints: K (k)
-        heatmap height: h
-        heatmap width: w
+        batch_size: N
+        num_keypoints: K
+        heatmap height: H
+        heatmap width: W
 
     Args:
-        heatmaps (np.ndarray[N, K, h, w]): model predicted heatmaps.
+        heatmaps (np.ndarray[N, K, H, W]): model predicted heatmaps.
 
     Returns:
         preds (np.ndarray[N, K, 2]): Predicted keypoint location.
@@ -106,14 +106,14 @@ def pose_pck_accuracy(output, target, thr=0.5):
         predicted locations that are no further than a normalized
         distance of the ground truth. Here we use [w,h]/10.
 
-        batch_size: N (n)
-        num_keypoints: K (k)
-        heatmap height: h
-        heatmap width: w
+        batch_size: N
+        num_keypoints: K
+        heatmap height: H
+        heatmap width: W
 
     Args:
-        output (np.ndarray[N, K, h, w]): Model output heatmaps.
-        target (np.ndarray[N, K, h, w]): Groundtruth heatmaps.
+        output (np.ndarray[N, K, H, W]): Model output heatmaps.
+        target (np.ndarray[N, K, H, W]): Groundtruth heatmaps.
 
     Returns:
         acc (np.ndarray[K]): Accuracy of each keypoint.
@@ -126,10 +126,10 @@ def pose_pck_accuracy(output, target, thr=0.5):
     idx = list(range(output.shape[1]))
     pred, _ = _get_max_preds(output)
     gt, _ = _get_max_preds(target)
-    h = output.shape[2]
-    w = output.shape[3]
+    H = output.shape[2]
+    W = output.shape[3]
 
-    norm = np.ones((pred.shape[0], 2)) * np.array([h, w]) / 10
+    norm = np.ones((pred.shape[0], 2)) * np.array([H, W]) / 10
 
     distances = _calc_distances(pred, gt, norm)
 
@@ -152,13 +152,13 @@ def get_final_preds(heatmaps, center, scale, post_process=True):
     back to the image.
 
     Note:
-        batch_size: N (n)
-        num_keypoints: K (k)
-        heatmap height: h
-        heatmap width: w
+        batch_size: N
+        num_keypoints: K
+        heatmap height: H
+        heatmap width: W
 
     Args:
-        heatmaps (np.ndarray[N, K, h, w]): model predicted heatmaps.
+        heatmaps (np.ndarray[N, K, H, W]): model predicted heatmaps.
         center (np.ndarray[N, 2]): Center of the bounding box (x, y).
         scale (np.ndarray[N, 2]): Scale of the bounding box
             wrt height/width.
