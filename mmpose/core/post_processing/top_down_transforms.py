@@ -114,7 +114,7 @@ def _get_affine_transform(center,
                           output_size,
                           shift=np.array([0, 0], dtype=np.float32),
                           inv=False):
-    """Get the affine transform matrix, given
+    """Get the affine transform matrix, given the
     center/scale/rot/output_size.
 
     Args:
