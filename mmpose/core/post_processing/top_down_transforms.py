@@ -22,7 +22,7 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
         flip_pairs (list[tuple()]): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
     Returns:
-        flipped joints_3d, joints_3d_visible
+        joints_3d_flipped, joints_3d_visible_flipped
     """
 
     assert len(joints_3d) == len(joints_3d_visible)
@@ -31,13 +31,13 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
     joints_3d_flipped = joints_3d.copy()
     joints_3d_visible_flipped = joints_3d_visible.copy()
 
-    # Change left-right parts
-    for pair in flip_pairs:
-        joints_3d_flipped[pair[0], :] = joints_3d[pair[1], :]
-        joints_3d_flipped[pair[1], :] = joints_3d[pair[0], :]
+    # Swap left-right parts
+    for left, right in flip_pairs:
+        joints_3d_flipped[left, :] = joints_3d[right, :]
+        joints_3d_flipped[right, :] = joints_3d[left, :]
 
-        joints_3d_visible_flipped[pair[0], :] = joints_3d_visible[pair[1], :]
-        joints_3d_visible_flipped[pair[1], :] = joints_3d_visible[pair[0], :]
+        joints_3d_visible_flipped[left, :] = joints_3d_visible[right, :]
+        joints_3d_visible_flipped[right, :] = joints_3d_visible[left, :]
 
     # Flip horizontally
     joints_3d_flipped[:, 0] = img_width - 1 - joints_3d_flipped[:, 0]
@@ -61,20 +61,19 @@ def flip_back(output_flipped, flip_pairs):
         flip_pairs (list[tuple()): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
     Returns:
-        ouput_flipped: the heatmaps are flipped back to the original images.
+        output_flipped_back: heatmaps that flipped back to the original image
     """
     assert output_flipped.ndim == 4, \
         'output_flipped should be [batch_size, num_keypoints, height, width]'
 
-    output_flipped_copy = output_flipped.copy()
-    output_flipped = output_flipped_copy[:, :, :, ::-1]
-    output_flipped_copy = output_flipped.copy()
-    for pair in flip_pairs:
-        output_flipped[:, pair[0], :, :] = output_flipped_copy[:,
-                                                               pair[1], :, :]
-        output_flipped[:, pair[1], :, :] = output_flipped_copy[:,
-                                                               pair[0], :, :]
-    return output_flipped
+    # Flip horizontally
+    output_flipped_back = output_flipped[..., ::-1].copy()
+
+    # Swap left-right parts
+    for left, right in flip_pairs:
+        output_flipped_back[:, left, ...] = output_flipped[:, right, ...]
+        output_flipped_back[:, right, ...] = output_flipped[:, left, ...]
+    return output_flipped_back
 
 
 def transform_preds(coords, center, scale, output_size):
