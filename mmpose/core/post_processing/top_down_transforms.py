@@ -19,7 +19,7 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
         joints_3d (np.ndarray([K, 3])): Coordinates of keypoints.
         joints_3d_visible (np.ndarray([K, 1])): Visibility of keypoints.
         img_width (int): Image width.
-        flip_pairs (list[tuple()): Pairs of keypoints which are mirrored
+        flip_pairs (list[tuple()]): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
     Returns:
         flipped joints_3d, joints_3d_visible
@@ -28,21 +28,22 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
     assert len(joints_3d) == len(joints_3d_visible)
     assert img_width > 0
 
-    joints_3d_copy = joints_3d.copy()
-    joints_3d_visible_copy = joints_3d_visible.copy()
-    # Flip horizontally
-    joints_3d[:, 0] = img_width - 1 - joints_3d_copy[:, 0]
-    joints_3d_copy = joints_3d.copy()
+    joints_3d_flipped = joints_3d.copy()
+    joints_3d_visible_flipped = joints_3d_visible.copy()
 
     # Change left-right parts
     for pair in flip_pairs:
-        joints_3d[pair[0], :] = joints_3d_copy[pair[1], :]
-        joints_3d[pair[1], :] = joints_3d_copy[pair[0], :]
+        joints_3d_flipped[pair[0], :] = joints_3d[pair[1], :]
+        joints_3d_flipped[pair[1], :] = joints_3d[pair[0], :]
 
-        joints_3d_visible[pair[0], :] = joints_3d_visible_copy[pair[1], :]
-        joints_3d_visible[pair[1], :] = joints_3d_visible_copy[pair[0], :]
+        joints_3d_visible_flipped[pair[0], :] = joints_3d_visible[pair[1], :]
+        joints_3d_visible_flipped[pair[1], :] = joints_3d_visible[pair[0], :]
 
-    return joints_3d * joints_3d_visible, joints_3d_visible
+    # Flip horizontally
+    joints_3d_flipped[:, 0] = img_width - 1 - joints_3d_flipped[:, 0]
+    joints_3d_flipped = joints_3d_flipped * joints_3d_visible_flipped
+
+    return joints_3d_flipped, joints_3d_visible_flipped
 
 
 def flip_back(output_flipped, flip_pairs):
