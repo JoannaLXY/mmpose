@@ -81,7 +81,8 @@ def transform_preds(coords, center, scale, output_size):
     back to the image.
 
     First calculate the trans matrix from _get_affine_transform(),
-    then affine transform the src coords to the dst coords.
+    then affine transform the predicted keypoint coordinates back
+    to the image.
 
     Note:
         num_keypoints: K
@@ -101,7 +102,7 @@ def transform_preds(coords, center, scale, output_size):
     assert len(output_size) == 2
 
     target_coords = np.zeros_like(coords)
-    trans = get_affine_transform(center, scale, 0, output_size, inv=1)
+    trans = get_affine_transform(center, scale, 0, output_size, inv=True)
     for p in range(coords.shape[0]):
         target_coords[p, 0:2] = affine_transform(coords[p, 0:2], trans)
     return target_coords
