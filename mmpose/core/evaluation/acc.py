@@ -20,9 +20,10 @@ def _calc_distances(preds, targets, normalize):
     '''
 
     distances = np.zeros((preds.shape[1], preds.shape[0]))
+    eps = np.finfo(np.float32).eps
     for n in range(preds.shape[0]):
         for k in range(preds.shape[1]):
-            if targets[n, k, 0] > 1 and targets[n, k, 1] > 1:
+            if targets[n, k, 0] > eps and targets[n, k, 1] > eps:
                 normed_preds = preds[n, k, :] / normalize[n]
                 normed_targets = targets[n, k, :] / normalize[n]
                 distances[k, n] = np.linalg.norm(normed_preds - normed_targets)
@@ -49,7 +50,7 @@ def _distance_acc(distances, thr=0.5):
     num_distance_valid = distance_valid.sum()
     if num_distance_valid > 0:
         return np.less(distances[distance_valid],
-                       thr).sum() * 1.0 / num_distance_valid
+                       thr).sum() / num_distance_valid
     else:
         return -1
 
