@@ -11,7 +11,7 @@ def _calc_distances(preds, targets, normalize):
 
     Args:
         preds (np.ndarray[NxKx2]): Predicted keypoint location.
-        target (np.ndarray[NxKx2]): Groundtruth keypoint location.
+        targets (np.ndarray[NxKx2]): Groundtruth keypoint location.
         normalize (np.ndarray[Nx2]): Typical value is heatmap_size/10
 
     Returns:
@@ -19,16 +19,11 @@ def _calc_distances(preds, targets, normalize):
         If target keypoints are missing, the distance is -1.
     '''
     N, K, _ = preds.shape
-    distances = np.zeros((K, N))
+    distances = np.full((K, N), -1, dtype=np.float32)
     eps = np.finfo(np.float32).eps
-    for n in range(N):
-        for k in range(K):
-            if targets[n, k, 0] > eps and targets[n, k, 1] > eps:
-                normed_preds = preds[n, k, :] / normalize[n]
-                normed_targets = targets[n, k, :] / normalize[n]
-                distances[k, n] = np.linalg.norm(normed_preds - normed_targets)
-            else:
-                distances[k, n] = -1
+    mask = (targets[..., 0] > eps) & (targets[..., 1] > eps)
+    distances[mask.T] = np.linalg.norm(
+        ((preds - targets) / normalize[:, None, :])[mask], axis=-1)
     return distances
 
 
@@ -46,13 +41,11 @@ def _distance_acc(distances, thr=0.5):
         Percentage of distances below the threshold.
         If all target keypoints are missing, return -1.
     '''
-    distance_valid = np.not_equal(distances, -1)
+    distance_valid = distances != -1
     num_distance_valid = distance_valid.sum()
     if num_distance_valid > 0:
-        return np.less(distances[distance_valid],
-                       thr).sum() / num_distance_valid
-    else:
-        return -1
+        return (distances[distance_valid] < thr).sum() / num_distance_valid
+    return -1
 
 
 def _get_max_preds(heatmaps):
@@ -75,22 +68,16 @@ def _get_max_preds(heatmaps):
         'heatmaps should be numpy.ndarray'
     assert heatmaps.ndim == 4, 'batch_images should be 4-ndim'
 
-    batch_size = heatmaps.shape[0]
-    num_joints = heatmaps.shape[1]
-    width = heatmaps.shape[3]
-    heatmaps_reshaped = heatmaps.reshape((batch_size, num_joints, -1))
-    idx = np.argmax(heatmaps_reshaped, 2)
-    maxvals = np.amax(heatmaps_reshaped, 2)
-
-    maxvals = maxvals.reshape((batch_size, num_joints, 1))
-    idx = idx.reshape((batch_size, num_joints, 1))
+    N, K, _, W = heatmaps.shape
+    heatmaps_reshaped = heatmaps.reshape((N, K, -1))
+    idx = np.argmax(heatmaps_reshaped, 2).reshape((N, K, 1))
+    maxvals = np.amax(heatmaps_reshaped, 2).reshape((N, K, 1))
 
     preds = np.tile(idx, (1, 1, 2)).astype(np.float32)
-    preds[:, :, 0] = preds[:, :, 0] % width
-    preds[:, :, 1] = preds[:, :, 1] // width
+    preds[:, :, 0] = preds[:, :, 0] % W
+    preds[:, :, 1] = preds[:, :, 1] // W
 
-    pred_mask = np.tile(np.greater(maxvals, 0.0), (1, 1, 2))
-
+    pred_mask = np.tile(maxvals > 0.0, (1, 1, 2))
     preds *= pred_mask
     return preds, maxvals
 
