@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mmpose.core import flip_back, fliplr_joints, transform_preds
+from mmpose.core import (flip_back, fliplr_joints, get_affine_transform,
+                         transform_preds)
 
 
 def test_fliplr_joints():
@@ -31,3 +32,12 @@ def test_transform_preds():
     size = np.array([100, 100])
     ans = transform_preds(coords, center, scale, size)
     assert_array_almost_equal(coords, ans)
+
+
+def test_get_affine_transform():
+    center = np.array([50, 50])
+    scale = np.array([100, 100])
+    size = np.array([100, 100])
+    ans = get_affine_transform(center, scale, 0, size)
+    trans = np.array([[1, 0, 0], [0, 1, 0]])
+    assert_array_almost_equal(trans, ans)
