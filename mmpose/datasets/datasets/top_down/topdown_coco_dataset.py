@@ -1,10 +1,13 @@
 import json
 import os
 import random
+from collections import OrderedDict, defaultdict
 
 import numpy as np
 from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
 
+from mmpose.core.post_processing import oks_nms, soft_oks_nms
 from mmpose.datasets.builder import DATASETS
 from .topdown_base_dataset import TopDownBaseDataset
 
@@ -13,18 +16,18 @@ from .topdown_base_dataset import TopDownBaseDataset
 class TopDownCocoDataset(TopDownBaseDataset):
     """CocoDataset dataset for top-down pose estimation.
 
-        The dataset loads raw features and apply specified transforms
-        to return a dict containing the image tensors and other information.
+    The dataset loads raw features and apply specified transforms
+    to return a dict containing the image tensors and other information.
 
-        Args:
-            ann_file (str): Path to the annotation file.
-            img_prefix (str): Path to a directory where images are held.
-                Default: None.
-            data_cfg (dict): config
-            pipeline (list[dict | callable]): A sequence of data transforms.
-            test_mode (bool): Store True when building test or
-                validation dataset. Default: False.
-        """
+    Args:
+        ann_file (str): Path to the annotation file.
+        img_prefix (str): Path to a directory where images are held.
+            Default: None.
+        data_cfg (dict): config
+        pipeline (list[dict | callable]): A sequence of data transforms.
+        test_mode (bool): Store True when building test or
+            validation dataset. Default: False.
+    """
 
     def __init__(self,
                  ann_file,
@@ -92,6 +95,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
     def _load_coco_keypoint_annotation_kernal(self, index):
         """load annotation from COCOAPI
+
         Note:
             bbox:[x1, y1, w, h]
         Args:
@@ -140,7 +144,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 joints_3d_visible[ipt, 2] = 0
             center, scale = self._box2cs(obj['clean_bbox'][:4])
             rec.append({
-                'image_file': self.image_path_from_index(index),
+                'image_file': self._image_path_from_index(index),
                 'center': center,
                 'scale': scale,
                 'rotation': 0,
@@ -152,11 +156,18 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return rec
 
     def _box2cs(self, box):
+        """Get box center & scale given box (x, y, w, h).
+
+        """
         x, y, w, h = box[:4]
         return self._xywh2cs(x, y, w, h)
 
     def _xywh2cs(self, x, y, w, h):
-        """this coder encodes bbox(x,y,w,w) into (center, scale)
+        """This encodes bbox(x,y,w,w) into (center, scale)
+
+        Args:
+            x, y, w, h
+
         Returns:
             center (np.ndarray[float32](2,)): center of the bbox (x, y).
             scale (np.ndarray[float32](2,)): scale of the bbox w & h.
@@ -184,7 +195,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
         return center, scale
 
-    def image_path_from_index(self, index):
+    def _image_path_from_index(self, index):
         """ example: images / train2017 / 000000119993.jpg """
         image_path = os.path.join(self.img_prefix, '%012d.jpg' % index)
         return image_path
@@ -207,7 +218,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
             if det_res['category_id'] != 1:
                 continue
 
-            img_name = self.image_path_from_index(det_res['image_id'])
+            img_name = self._image_path_from_index(det_res['image_id'])
             box = det_res['bbox']
             score = det_res['score']
 
@@ -233,3 +244,160 @@ class TopDownCocoDataset(TopDownBaseDataset):
         print('=> Total boxes after fliter low score@{}: {}'.format(
             self.image_thre, num_boxes))
         return kpt_db
+
+    def evaluate(self, outputs, res_folder, metrics='mAP', **kwargs):
+        """Evaluate coco keypoint results.
+        Note:
+            num_keypoints: K
+        Args:
+            outputs(list(preds, boxes, image_path)):Output results.
+                preds(np.ndarray[1,K,3]): The first two dimensions are
+                    coordinates, score is the third dimension of the array.
+                boxes(np.ndarray[1,6]): [center[0], center[1], scale[0]
+                    , scale[1],area, score]
+                image_path(list[str]): For example, [ '/', 'v','a', 'l',
+                    '2', '0', '1', '7', '/', '0', '0', '0', '0', '0',
+                    '0', '3', '9', '7', '1', '3', '3', '.', 'j', 'p', 'g']
+            res_folder(str): Path of directory to save the results.
+            metrics(str): Metrics to be performed.
+                Defaults: 'mAP'.
+
+        Returns:
+            name_value (dict): Evaluation results for evaluation metrics.
+
+        """
+
+        res_file = os.path.join(res_folder, 'result_keypoints.json')
+        _kpts = []
+        for i in range(len(outputs)):
+            preds, boxes, image_path = outputs[i]
+            str_image_path = ''.join(image_path)
+
+            _kpts.append({
+                'keypoints': preds[0],
+                'center': boxes[0][0:2],
+                'scale': boxes[0][2:4],
+                'area': boxes[0][4],
+                'score': boxes[0][5],
+                'image': int(str_image_path[-16:-4]),
+            })
+
+        # image x person x (keypoints)
+        kpts = defaultdict(list)
+        for kpt in _kpts:
+            kpts[kpt['image']].append(kpt)
+
+        # rescoring and oks nms
+        num_joints = self.ann_info['num_joints']
+        in_vis_thre = self.in_vis_thre
+        oks_thre = self.oks_thre
+        oks_nmsed_kpts = []
+        for img in kpts.keys():
+            img_kpts = kpts[img]
+            for n_p in img_kpts:
+                box_score = n_p['score']
+                kpt_score = 0
+                valid_num = 0
+                for n_jt in range(0, num_joints):
+                    t_s = n_p['keypoints'][n_jt][2]
+                    if t_s > in_vis_thre:
+                        kpt_score = kpt_score + t_s
+                        valid_num = valid_num + 1
+                if valid_num != 0:
+                    kpt_score = kpt_score / valid_num
+                # rescoring
+                n_p['score'] = kpt_score * box_score
+
+            if self.soft_nms:
+                keep = soft_oks_nms(
+                    [img_kpts[i] for i in range(len(img_kpts))], oks_thre)
+            else:
+                keep = oks_nms([img_kpts[i] for i in range(len(img_kpts))],
+                               oks_thre)
+
+            if len(keep) == 0:
+                oks_nmsed_kpts.append(img_kpts)
+            else:
+                oks_nmsed_kpts.append([img_kpts[_keep] for _keep in keep])
+
+        self._write_coco_keypoint_results(oks_nmsed_kpts, res_file)
+
+        info_str = self._do_python_keypoint_eval(res_file)
+        name_value = OrderedDict(info_str)
+
+        return name_value
+
+    def _write_coco_keypoint_results(self, keypoints, res_file):
+        """Write results into a json file.
+
+        """
+        data_pack = [{
+            'cat_id': self._class_to_coco_ind[cls],
+            'cls_ind': cls_ind,
+            'cls': cls,
+            'ann_type': 'keypoints',
+            'keypoints': keypoints
+        } for cls_ind, cls in enumerate(self.classes)
+                     if not cls == '__background__']
+
+        results = self._coco_keypoint_results_one_category_kernel(data_pack[0])
+
+        with open(res_file, 'w') as f:
+            json.dump(results, f, sort_keys=True, indent=4)
+
+    def _coco_keypoint_results_one_category_kernel(self, data_pack):
+        """Get coco keypoint results.
+
+        """
+        cat_id = data_pack['cat_id']
+        keypoints = data_pack['keypoints']
+        cat_results = []
+
+        for img_kpts in keypoints:
+            if len(img_kpts) == 0:
+                continue
+
+            _key_points = np.array(
+                [img_kpts[k]['keypoints'] for k in range(len(img_kpts))])
+            key_points = np.zeros(
+                (_key_points.shape[0], self.ann_info['num_joints'] * 3),
+                dtype=np.float)
+
+            for ipt in range(self.ann_info['num_joints']):
+                key_points[:, ipt * 3 + 0] = _key_points[:, ipt, 0]
+                key_points[:, ipt * 3 + 1] = _key_points[:, ipt, 1]
+                key_points[:, ipt * 3 + 2] = _key_points[:, ipt, 2]
+
+            result = [{
+                'image_id': img_kpts[k]['image'],
+                'category_id': cat_id,
+                'keypoints': list(key_points[k]),
+                'score': img_kpts[k]['score'],
+                'center': list(img_kpts[k]['center']),
+                'scale': list(img_kpts[k]['scale'])
+            } for k in range(len(img_kpts))]
+            cat_results.extend(result)
+
+        return cat_results
+
+    def _do_python_keypoint_eval(self, res_file):
+        """Keypoint evaluation using COCOAPI
+
+        """
+        coco_dt = self.coco.loadRes(res_file)
+        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints')
+        coco_eval.params.useSegm = None
+        coco_eval.evaluate()
+        coco_eval.accumulate()
+        coco_eval.summarize()
+
+        stats_names = [
+            'AP', 'Ap .5', 'AP .75', 'AP (M)', 'AP (L)', 'AR', 'AR .5',
+            'AR .75', 'AR (M)', 'AR (L)'
+        ]
+
+        info_str = []
+        for ind, name in enumerate(stats_names):
+            info_str.append((name, coco_eval.stats[ind]))
+
+        return info_str
