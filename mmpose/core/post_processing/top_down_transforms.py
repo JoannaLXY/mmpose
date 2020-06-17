@@ -90,7 +90,7 @@ def transform_preds(coords, center, scale, output_size):
         coords (np.ndarray[K, 2]): Predicted keypoint location.
         center (np.ndarray[2, ]): Center of the bounding box (x, y).
         scale (np.ndarray[2, ]): Scale of the bounding box
-            wrt height/width.
+            wrt [width, height].
         output_size (np.ndarray[2, ]): Size of the destination heatmaps.
 
     Returns:
@@ -120,7 +120,7 @@ def get_affine_transform(center,
     Args:
         center (np.ndarray[2, ]): Center of the bounding box (x, y).
         scale (np.ndarray[2, ]): Scale of the bounding box
-            wrt height/width.
+            wrt [width, height].
         rot (float): Rotation angle (degree).
         output_size (np.ndarray[2, ]): Size of the destination heatmaps.
         shift (0-100%): Shift translation ratio wrt the width/height.
