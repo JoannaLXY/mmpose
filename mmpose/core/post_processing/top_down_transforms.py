@@ -21,6 +21,7 @@ def fliplr_joints(joints_3d, joints_3d_visible, img_width, flip_pairs):
         img_width (int): Image width.
         flip_pairs (list[tuple()]): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
+
     Returns:
         joints_3d_flipped, joints_3d_visible_flipped
     """
@@ -60,6 +61,7 @@ def flip_back(output_flipped, flip_pairs):
             from the flipped images.
         flip_pairs (list[tuple()): Pairs of keypoints which are mirrored
             (for example, left ear -- right ear).
+
     Returns:
         output_flipped_back: heatmaps that flipped back to the original image
     """
@@ -80,12 +82,13 @@ def transform_preds(coords, center, scale, output_size):
     """Get final keypoint predictions from heatmaps and transform them
     back to the image.
 
-    First calculate the trans matrix from _get_affine_transform(),
+    First calculate the transformation matrix from `get_affine_transform()`,
     then affine transform the predicted keypoint coordinates back
     to the image.
 
     Note:
         num_keypoints: K
+
     Args:
         coords (np.ndarray[K, 2]): Predicted keypoint location.
         center (np.ndarray[2, ]): Center of the bounding box (x, y).
@@ -112,7 +115,7 @@ def get_affine_transform(center,
                          scale,
                          rot,
                          output_size,
-                         shift=np.array([0, 0], dtype=np.float32),
+                         shift=(0., 0.),
                          inv=False):
     """Get the affine transform matrix, given the
     center/scale/rot/output_size.
@@ -124,7 +127,7 @@ def get_affine_transform(center,
         rot (float): Rotation angle (degree).
         output_size (np.ndarray[2, ]): Size of the destination heatmaps.
         shift (0-100%): Shift translation ratio wrt the width/height.
-            Default np.array([0, 0].
+            Default (0., 0.).
         inv (bool): Option to inverse the affine transform direction.
             (inv=False: src->dst or inv=True: dst->src)
 
@@ -136,24 +139,24 @@ def get_affine_transform(center,
     assert len(output_size) == 2
     assert len(shift) == 2
 
-    scale_tmp = scale
-    src_w = scale_tmp[0]
+    shift = np.array(shift)
+    src_w = scale[0]
     dst_w = output_size[0]
     dst_h = output_size[1]
 
     rot_rad = np.pi * rot / 180
-    src_dir = rotate_point([0, src_w * -0.5], rot_rad)
-    dst_dir = np.array([0, dst_w * -0.5], np.float32)
+    src_dir = rotate_point([0., src_w * -0.5], rot_rad)
+    dst_dir = np.array([0., dst_w * -0.5])
 
     src = np.zeros((3, 2), dtype=np.float32)
+    src[0, :] = center + scale * shift
+    src[1, :] = center + src_dir + scale * shift
+    src[2, :] = get_3rd_point(src[0, :], src[1, :])
+
     dst = np.zeros((3, 2), dtype=np.float32)
-    src[0, :] = center + scale_tmp * shift
-    src[1, :] = center + src_dir + scale_tmp * shift
     dst[0, :] = [dst_w * 0.5, dst_h * 0.5]
     dst[1, :] = np.array([dst_w * 0.5, dst_h * 0.5]) + dst_dir
-
-    src[2:, :] = get_3rd_point(src[0, :], src[1, :])
-    dst[2:, :] = get_3rd_point(dst[0, :], dst[1, :])
+    dst[2, :] = get_3rd_point(dst[0, :], dst[1, :])
 
     if inv:
         trans = cv2.getAffineTransform(np.float32(dst), np.float32(src))
