@@ -1,24 +1,23 @@
 # ------------------------------------------------------------------------------
-# Copyright (c) Microsoft
-# Licensed under the MIT License.
-# Modified from py-faster-rcnn (https://github.com/rbgirshick/py-faster-rcnn)
+# Adapted from https://github.com/leoxiaobin/deep-high-resolution-net.pytorch
+# Original licence: Copyright (c) Microsoft, under the MIT License.
 # ------------------------------------------------------------------------------
 
 import numpy as np
 
 
-def nms(dets, thresh):
+def nms(dets, thr):
     """Greedily select boxes with high confidence and
-    overlap with current maximum <= thresh
-    rule out overlap >= thresh
+    overlap <= thr.
 
     Args:
-        dets: [[x1, y1, x2, y2 score]]
-        thresh: Retain overlap < thresh
+        dets: [[x1, y1, x2, y2, score]].
+        thr: Retain overlap < thr.
+
     Returns:
-         indexes to keep
+         indexes to keep.
     """
-    if dets.shape[0] == 0:
+    if len(dets) == 0:
         return []
 
     x1 = dets[:, 0]
@@ -44,23 +43,27 @@ def nms(dets, thresh):
         inter = w * h
         ovr = inter / (areas[i] + areas[order[1:]] - inter)
 
-        inds = np.where(ovr <= thresh)[0]
+        inds = np.where(ovr <= thr)[0]
         order = order[inds + 1]
 
     return keep
 
 
-def oks_iou(g, d, a_g, a_d, sigmas=None, in_vis_thre=None):
+def oks_iou(g, d, a_g, a_d, sigmas=None, vis_thr=None):
     """Calculate oks ious.
 
     Args:
-        kpts_db
-        thresh: Retain oks iou overlap < thresh.
-        sigmas: Keypoint labelling uncertainty.
+        g: Ground truth keypoints.
+        d: Detected keypoints.
+        a_g: Area of the ground truth object.
+        a_d: Area of the detected object.
+        sigmas: standard deviation of keypoint labelling.
+        vis_thr: threshold of the keypoint visibility.
+
     Returns:
-        indexes to keep
+        The oks ious.
     """
-    if not isinstance(sigmas, np.ndarray):
+    if sigmas is None:
         sigmas = np.array([
             .26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07,
             .87, .87, .89, .89
@@ -77,21 +80,24 @@ def oks_iou(g, d, a_g, a_d, sigmas=None, in_vis_thre=None):
         dx = xd - xg
         dy = yd - yg
         e = (dx**2 + dy**2) / vars / ((a_g + a_d[n_d]) / 2 + np.spacing(1)) / 2
-        if in_vis_thre is not None:
-            ind = list(vg > in_vis_thre) and list(vd > in_vis_thre)
+        if vis_thr is not None:
+            ind = list(vg > vis_thr) and list(vd > vis_thr)
             e = e[ind]
         ious[n_d] = np.sum(np.exp(-e)) / e.shape[0] if e.shape[0] != 0 else 0.0
     return ious
 
 
-def oks_nms(kpts_db, thresh, sigmas=None, in_vis_thre=None):
+def oks_nms(kpts_db, thr, sigmas=None, vis_thr=None):
     """OKS NMS implementations.
 
     Args:
-        kpts_db: keypoints
-        thresh: Retain overlap < thresh
+        kpts_db: keypoints.
+        thr: Retain overlap < thr.
+        sigmas: standard deviation of keypoint labelling.
+        vis_thr: threshold of the keypoint visibility.
+
     Returns:
-         indexes to keep
+         indexes to keep.
     """
     if len(kpts_db) == 0:
         return []
@@ -109,68 +115,69 @@ def oks_nms(kpts_db, thresh, sigmas=None, in_vis_thre=None):
         keep.append(i)
 
         oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]],
-                          sigmas, in_vis_thre)
+                          sigmas, vis_thr)
 
-        inds = np.where(oks_ovr <= thresh)[0]
+        inds = np.where(oks_ovr <= thr)[0]
         order = order[inds + 1]
 
     return keep
 
 
-def _rescore(overlap, scores, thresh, type='gaussian'):
+def _rescore(overlap, scores, thr, type='gaussian'):
     """Rescoring mechanism gaussian or linear.
 
     Args:
         overlap: calculated ious
         scores: target scores.
-        thresh: retain oks overlap < thresh.
+        thr: retain oks overlap < thr.
         type: 'gaussian' or 'linear'
     Returns:
         indexes to keep
     """
-    assert overlap.shape[0] == scores.shape[0]
+    assert len(overlap) == len(scores)
+    assert type in ['gaussian', 'linear']
+
     if type == 'linear':
-        inds = np.where(overlap >= thresh)[0]
+        inds = np.where(overlap >= thr)[0]
         scores[inds] = scores[inds] * (1 - overlap[inds])
     else:
-        scores = scores * np.exp(-overlap**2 / thresh)
+        scores = scores * np.exp(-overlap**2 / thr)
 
     return scores
 
 
-def soft_oks_nms(kpts_db, thresh, sigmas=None, in_vis_thre=None):
+def soft_oks_nms(kpts_db, thr, max_dets=20, sigmas=None, vis_thr=None):
     """Soft OKS NMS implementations.
 
     Args:
         kpts_db
-        thresh: retain oks overlap < thresh.
+        thr: retain oks overlap < thr.
+        max_dets: max number of detections to keep.
         sigmas: Keypoint labelling uncertainty.
+
     Returns:
-        indexes to keep
+        indexes to keep.
     """
     if len(kpts_db) == 0:
         return []
 
-    scores = np.array([kpts_db[i]['score'] for i in range(len(kpts_db))])
-    kpts = np.array(
-        [kpts_db[i]['keypoints'].flatten() for i in range(len(kpts_db))])
-    areas = np.array([kpts_db[i]['area'] for i in range(len(kpts_db))])
+    scores = np.array([_kpts['score'] for _kpts in kpts_db])
+    kpts = np.array([_kpts['keypoints'].flatten() for _kpts in kpts_db])
+    areas = np.array([_kpts['area'] for _kpts in kpts_db])
 
     order = scores.argsort()[::-1]
     scores = scores[order]
 
-    # max_dets = order.size
-    max_dets = 20
     keep = np.zeros(max_dets, dtype=np.intp)
     keep_cnt = 0
     while order.size > 0 and keep_cnt < max_dets:
         i = order[0]
 
         oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]],
-                          sigmas, in_vis_thre)
+                          sigmas, vis_thr)
 
         order = order[1:]
-        scores = _rescore(oks_ovr, scores[1:], thresh)
+        scores = _rescore(oks_ovr, scores[1:], thr)
 
         tmp = scores.argsort()[::-1]
         order = order[tmp]

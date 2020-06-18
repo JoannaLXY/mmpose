@@ -39,10 +39,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
             ann_file, img_prefix, data_cfg, pipeline, test_mode=test_mode)
 
         self.soft_nms = data_cfg['soft_nms']
-        self.nms_thre = data_cfg['nms_thre']
-        self.oks_thre = data_cfg['oks_thre']
-        self.in_vis_thre = data_cfg['in_vis_thre']
-        self.bbox_thre = data_cfg['bbox_thre']
+        self.nms_thr = data_cfg['nms_thr']
+        self.oks_thr = data_cfg['oks_thr']
+        self.vis_thr = data_cfg['vis_thr']
+        self.bbox_thr = data_cfg['bbox_thr']
 
         self.ann_info['flip_pairs'] = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10],
                                        [11, 12], [13, 14], [15, 16]]
@@ -222,7 +222,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
             box = det_res['bbox']
             score = det_res['score']
 
-            if score < self.image_thre:
+            if score < self.image_thr:
                 continue
 
             num_boxes = num_boxes + 1
@@ -242,7 +242,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'joints_3d_visible': joints_3d_visible,
             })
         print('=> Total boxes after fliter low score@{}: {}'.format(
-            self.image_thre, num_boxes))
+            self.image_thr, num_boxes))
         return kpt_db
 
     def evaluate(self, outputs, res_folder, metrics='mAP', **kwargs):
@@ -289,8 +289,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
         # rescoring and oks nms
         num_joints = self.ann_info['num_joints']
-        in_vis_thre = self.in_vis_thre
-        oks_thre = self.oks_thre
+        vis_thr = self.vis_thr
+        oks_thr = self.oks_thr
         oks_nmsed_kpts = []
         for img in kpts.keys():
             img_kpts = kpts[img]
@@ -300,7 +300,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 valid_num = 0
                 for n_jt in range(0, num_joints):
                     t_s = n_p['keypoints'][n_jt][2]
-                    if t_s > in_vis_thre:
+                    if t_s > vis_thr:
                         kpt_score = kpt_score + t_s
                         valid_num = valid_num + 1
                 if valid_num != 0:
@@ -310,10 +310,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
             if self.soft_nms:
                 keep = soft_oks_nms(
-                    [img_kpts[i] for i in range(len(img_kpts))], oks_thre)
+                    [img_kpts[i] for i in range(len(img_kpts))], oks_thr)
             else:
                 keep = oks_nms([img_kpts[i] for i in range(len(img_kpts))],
-                               oks_thre)
+                               oks_thr)
 
             if len(keep) == 0:
                 oks_nmsed_kpts.append(img_kpts)
