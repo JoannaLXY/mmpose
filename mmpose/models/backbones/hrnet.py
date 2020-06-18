@@ -6,6 +6,7 @@ from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.utils import get_root_logger
 from ..builder import BACKBONES
+from .base_backbone import BaseBackbone
 from .resnet import BasicBlock, Bottleneck
 
 
@@ -192,7 +193,7 @@ class HRModule(nn.Module):
 
 
 @BACKBONES.register_module()
-class HRNet(nn.Module):
+class HRNet(BaseBackbone):
     """HRNet backbone.
 
     High-Resolution Representations for Labeling Pixels and Regions
