@@ -82,7 +82,7 @@ def _get_max_preds(heatmaps):
     return preds, maxvals
 
 
-def pose_pck_accuracy(output, target, thr=0.5):
+def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     '''Calculate the pose accuracy according to PCK,
     but uses ground truth heatmap rather than x,y locations
     First value to be returned is average accuracy across 'idxs',
@@ -101,36 +101,28 @@ def pose_pck_accuracy(output, target, thr=0.5):
     Args:
         output (np.ndarray[N, K, H, W]): Model output heatmaps.
         target (np.ndarray[N, K, H, W]): Groundtruth heatmaps.
+        thr
+        normalize
 
     Returns:
         acc (np.ndarray[K]): Accuracy of each keypoint.
         avg_acc (float): Averaged accuracy across all keypoints.
         cnt (int): Number of valid keypoints.
     '''
-    if output.shape[1] == 0:
+    N, K, H, W = output.shape
+    if K == 0:
         return None, 0, 0
+    if normalize is None:
+        normalize = np.tile(np.array([[H, W]]) / 10, (N, 1))
 
-    idx = list(range(output.shape[1]))
     pred, _ = _get_max_preds(output)
     gt, _ = _get_max_preds(target)
-    H = output.shape[2]
-    W = output.shape[3]
+    distances = _calc_distances(pred, gt, normalize)
 
-    norm = np.ones((pred.shape[0], 2)) * np.array([H, W]) / 10
-
-    distances = _calc_distances(pred, gt, norm)
-
-    acc = np.zeros(len(idx))
-    avg_acc = 0
-    cnt = 0
-
-    for i in range(len(idx)):
-        acc[i] = _distance_acc(distances[idx[i]], thr)
-        if acc[i] >= 0:
-            avg_acc = avg_acc + acc[i]
-            cnt += 1
-
-    avg_acc = avg_acc / cnt if cnt != 0 else 0
+    acc = np.array([_distance_acc(d, thr) for d in distances])
+    valid_acc = acc[acc >= 0]
+    cnt = len(valid_acc)
+    avg_acc = valid_acc.mean() if cnt > 0 else 0
     return acc, avg_acc, cnt
 
 
