@@ -126,7 +126,7 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     return acc, avg_acc, cnt
 
 
-def get_final_preds(heatmaps, center, scale, post_process=True):
+def keypoints_from_heatmaps(heatmaps, center, scale, post_process=True):
     """Get final keypoint predictions from heatmaps and transform them
     back to the image.
 
@@ -148,30 +148,25 @@ def get_final_preds(heatmaps, center, scale, post_process=True):
         maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
     """
 
-    coords, maxvals = _get_max_preds(heatmaps)
-
-    heatmap_height = heatmaps.shape[2]
-    heatmap_width = heatmaps.shape[3]
+    preds, maxvals = _get_max_preds(heatmaps)
+    N, K, H, W = heatmaps.shape
 
     if post_process:
         # add +/-0.25 shift to the predicted locations for higher acc.
-        for n in range(coords.shape[0]):
-            for k in range(coords.shape[1]):
+        for n in range(N):
+            for k in range(K):
                 hm = heatmaps[n][k]
-                px = int(coords[n][k][0])
-                py = int(coords[n][k][1])
-                if 1 < px < heatmap_width - 1 and 1 < py < heatmap_height - 1:
+                px = int(preds[n][k][0])
+                py = int(preds[n][k][1])
+                if 1 < px < W - 1 and 1 < py < H - 1:
                     diff = np.array([
                         hm[py][px + 1] - hm[py][px - 1],
                         hm[py + 1][px] - hm[py - 1][px]
                     ])
-                    coords[n][k] += np.sign(diff) * .25
-
-    preds = coords.copy()
+                    preds[n][k] += np.sign(diff) * .25
 
     # Transform back to the image
-    for i in range(coords.shape[0]):
-        preds[i] = transform_preds(coords[i], center[i], scale[i],
-                                   [heatmap_width, heatmap_height])
+    for i in range(N):
+        preds[i] = transform_preds(preds[i], center[i], scale[i], [W, H])
 
     return preds, maxvals

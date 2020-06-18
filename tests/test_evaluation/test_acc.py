@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mmpose.core import get_final_preds, pose_pck_accuracy
+from mmpose.core import keypoints_from_heatmaps, pose_pck_accuracy
 
 
 def test_pose_pck_accuracy():
@@ -21,13 +21,13 @@ def test_pose_pck_accuracy():
     assert abs(cnt - 2) < 1e-4
 
 
-def test_get_final_preds():
+def test_keypoints_from_heatmaps():
     heatmaps = np.ones((1, 1, 64, 64))
     heatmaps[0, 0, 31, 31] = 2
     center = np.array([[127, 127]])
     scale = np.array([[64, 64]])
 
-    preds, maxvals = get_final_preds(heatmaps, center, scale)
+    preds, maxvals = keypoints_from_heatmaps(heatmaps, center, scale)
 
     assert_array_almost_equal(preds, np.array([[[126, 126]]]), decimal=4)
     assert_array_almost_equal(maxvals, np.array([[[2]]]), decimal=4)
