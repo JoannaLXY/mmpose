@@ -1,4 +1,8 @@
-from .builder import build_model
-from .registry import MODELS
+from .builder import (BACKBONES, HEADS, LOSSES, POSENET, build_backbone,
+                      build_head, build_loss, build_posenet)
+from .losses import *  # noqa
 
-__all__ = ['build_model', 'MODELS']
+__all__ = [
+    'BACKBONES', 'HEADS', 'LOSSES', 'POSENET', 'build_backbone', 'build_head',
+    'build_loss', 'build_posenet'
+]
