@@ -1,8 +1,8 @@
 import torch.utils.checkpoint as cp
 
 from ..builder import BACKBONES
-from .utils import SELayer
 from .resnet import Bottleneck, ResLayer, ResNet
+from .utils import SELayer
 
 
 class SEBottleneck(Bottleneck):

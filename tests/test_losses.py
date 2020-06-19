@@ -4,6 +4,7 @@ import torch
 
 def test_mse_loss():
     from mmpose.models import build_loss
+    from mmpose.models.losses import JointsMSELoss, JointsOHKMMSELoss
 
     # test MSE loss without target weight
     loss_cfg = dict(type='JointsMSELoss')

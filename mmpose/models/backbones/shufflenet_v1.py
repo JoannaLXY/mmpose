@@ -5,9 +5,9 @@ from mmcv.cnn import (ConvModule, build_activation_layer, build_conv_layer,
                       constant_init, kaiming_init)
 from torch.nn.modules.batchnorm import _BatchNorm
 
-from .utils import channel_shuffle, make_divisible
 from ..builder import BACKBONES
 from .base_backbone import BaseBackbone
+from .utils import channel_shuffle, make_divisible
 
 
 class ShuffleUnit(nn.Module):

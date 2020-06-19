@@ -4,9 +4,9 @@ import torch.utils.checkpoint as cp
 from mmcv.cnn import ConvModule, constant_init, kaiming_init
 from torch.nn.modules.batchnorm import _BatchNorm
 
-from .utils import channel_shuffle
 from ..builder import BACKBONES
 from .base_backbone import BaseBackbone
+from .utils import channel_shuffle
 
 
 class InvertedResidual(nn.Module):
