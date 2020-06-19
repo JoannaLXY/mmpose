@@ -68,7 +68,6 @@ def flip_back(output_flipped, flip_pairs):
     assert output_flipped.ndim == 4, \
         'output_flipped should be [batch_size, num_keypoints, height, width]'
 
-    # Flip horizontally
     output_flipped_back = output_flipped.copy()
 
     # Swap left-right parts
@@ -76,6 +75,7 @@ def flip_back(output_flipped, flip_pairs):
         output_flipped_back[:, left, ...] = output_flipped[:, right, ...]
         output_flipped_back[:, right, ...] = output_flipped[:, left, ...]
 
+    # Flip horizontally
     output_flipped_back = output_flipped_back[..., ::-1]
     return output_flipped_back
 
