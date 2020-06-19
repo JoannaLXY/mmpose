@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from mmcv.cnn import (build_conv_layer, build_norm_layer, constant_init,
-                      kaiming_init)
+                      normal_init)
 from mmcv.utils.parrots_wrapper import _BatchNorm
 
 from ..builder import BACKBONES
@@ -536,7 +536,7 @@ class ResNet(BaseBackbone):
         if pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
-                    kaiming_init(m)
+                    normal_init(m, std=0.001)
                 elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
                     constant_init(m, 1)
 
