@@ -1,9 +1,9 @@
-from .base_dataset import BaseDataset
-from .builder import build_dataloader, build_dataset
+from .builder import DATASETS, PIPELINES, build_dataloader, build_dataset
+from .datasets import TopDownCocoDataset
 from .pipelines import Compose
 from .samplers import DistributedSampler
 
 __all__ = [
-    'BaseDataset', 'build_dataloader', 'build_dataset', 'Compose',
-    'DistributedSampler'
+    'TopDownCocoDataset', 'build_dataloader', 'build_dataset', 'Compose',
+    'DistributedSampler', 'DATASETS', 'PIPELINES'
 ]
