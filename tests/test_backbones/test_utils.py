@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from mmpose.models.utils import channel_shuffle, make_divisible
+from mmpose.models.backbones.utils import channel_shuffle, make_divisible
 
 
 def test_make_divisible():
