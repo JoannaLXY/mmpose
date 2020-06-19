@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from mmpose.models.losses import JointsMSELoss, JointsOHKMMSELoss
 
 
