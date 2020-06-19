@@ -1,6 +1,6 @@
 import torch.nn as nn
 from mmcv.cnn import (build_conv_layer, build_norm_layer, constant_init,
-                      kaiming_init)
+                      normal_init)
 from mmcv.runner import load_checkpoint
 from torch.nn.modules.batchnorm import _BatchNorm
 
@@ -464,10 +464,11 @@ class HRNet(BaseBackbone):
         if isinstance(pretrained, str):
             logger = get_root_logger()
             load_checkpoint(self, pretrained, strict=False, logger=logger)
+
         elif pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
-                    kaiming_init(m)
+                    normal_init(m, std=0.001)
                 elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
                     constant_init(m, 1)
 
