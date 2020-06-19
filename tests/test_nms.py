@@ -23,7 +23,7 @@ def test_soft_oks_nms():
     })
 
     keep = soft_oks_nms([kpts[i] for i in range(len(kpts))], oks_thr)
-    assert (len(keep) == 3)
+    assert (keep == np.array([0, 2, 1])).all()
 
     keep = oks_nms([kpts[i] for i in range(len(kpts))], oks_thr)
-    assert (len(keep) == 2)
+    assert (keep == np.array([0, 2])).all()

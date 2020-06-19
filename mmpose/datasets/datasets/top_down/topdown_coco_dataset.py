@@ -87,7 +87,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return gt_db
 
     def _load_coco_keypoint_annotations(self):
-        """ ground truth bbox and keypoints """
+        """Ground truth bbox and keypoints """
         gt_db = []
         for index in self.image_set_index:
             gt_db.extend(self._load_coco_keypoint_annotation_kernal(index))
@@ -151,6 +151,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'joints_3d': joints_3d,
                 'joints_3d_visible': joints_3d_visible,
                 'dataset': 'coco',
+                'bbox_score': 1,
             })
 
         return rec
@@ -196,7 +197,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return center, scale
 
     def _image_path_from_index(self, index):
-        """ example: images / train2017 / 000000119993.jpg """
+        """ example: images/train2017/000000119993.jpg """
         image_path = os.path.join(self.img_prefix, '%012d.jpg' % index)
         return image_path
 

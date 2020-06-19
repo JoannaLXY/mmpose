@@ -30,7 +30,7 @@ def nms(dets, thr):
     order = scores.argsort()[::-1]
 
     keep = []
-    while order.size > 0:
+    while len(order) > 0:
         i = order[0]
         keep.append(i)
         xx1 = np.maximum(x1[i], x1[order[1:]])
@@ -72,8 +72,8 @@ def oks_iou(g, d, a_g, a_d, sigmas=None, vis_thr=None):
     xg = g[0::3]
     yg = g[1::3]
     vg = g[2::3]
-    ious = np.zeros((d.shape[0]))
-    for n_d in range(0, d.shape[0]):
+    ious = np.zeros((len(d)))
+    for n_d in range(0, len(d)):
         xd = d[n_d, 0::3]
         yd = d[n_d, 1::3]
         vd = d[n_d, 2::3]
@@ -83,7 +83,7 @@ def oks_iou(g, d, a_g, a_d, sigmas=None, vis_thr=None):
         if vis_thr is not None:
             ind = list(vg > vis_thr) and list(vd > vis_thr)
             e = e[ind]
-        ious[n_d] = np.sum(np.exp(-e)) / e.shape[0] if e.shape[0] != 0 else 0.0
+        ious[n_d] = np.sum(np.exp(-e)) / len(e) if len(e) != 0 else 0.0
     return ious
 
 
@@ -102,15 +102,14 @@ def oks_nms(kpts_db, thr, sigmas=None, vis_thr=None):
     if len(kpts_db) == 0:
         return []
 
-    scores = np.array([kpts_db[i]['score'] for i in range(len(kpts_db))])
-    kpts = np.array(
-        [kpts_db[i]['keypoints'].flatten() for i in range(len(kpts_db))])
-    areas = np.array([kpts_db[i]['area'] for i in range(len(kpts_db))])
+    scores = np.array([k['score'] for k in kpts_db])
+    kpts = np.array([k['keypoints'].flatten() for k in kpts_db])
+    areas = np.array([k['area'] for k in kpts_db])
 
     order = scores.argsort()[::-1]
 
     keep = []
-    while order.size > 0:
+    while len(order) > 0:
         i = order[0]
         keep.append(i)
 
@@ -119,6 +118,8 @@ def oks_nms(kpts_db, thr, sigmas=None, vis_thr=None):
 
         inds = np.where(oks_ovr <= thr)[0]
         order = order[inds + 1]
+
+    keep = np.array(keep)
 
     return keep
 
@@ -161,16 +162,16 @@ def soft_oks_nms(kpts_db, thr, max_dets=20, sigmas=None, vis_thr=None):
     if len(kpts_db) == 0:
         return []
 
-    scores = np.array([_kpts['score'] for _kpts in kpts_db])
-    kpts = np.array([_kpts['keypoints'].flatten() for _kpts in kpts_db])
-    areas = np.array([_kpts['area'] for _kpts in kpts_db])
+    scores = np.array([k['score'] for k in kpts_db])
+    kpts = np.array([k['keypoints'].flatten() for k in kpts_db])
+    areas = np.array([k['area'] for k in kpts_db])
 
     order = scores.argsort()[::-1]
     scores = scores[order]
 
     keep = np.zeros(max_dets, dtype=np.intp)
     keep_cnt = 0
-    while order.size > 0 and keep_cnt < max_dets:
+    while len(order) > 0 and keep_cnt < max_dets:
         i = order[0]
 
         oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]],
