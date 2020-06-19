@@ -1,7 +1,10 @@
-import torch.nn as nn
 from mmcv.utils import Registry, build_from_cfg
+from torch import nn
 
-MODELS = Registry('model')
+BACKBONES = Registry('backbone')
+HEADS = Registry('head')
+LOSSES = Registry('loss')
+POSENET = Registry('posenet')
 
 
 def build(cfg, registry, default_args=None):
@@ -14,5 +17,17 @@ def build(cfg, registry, default_args=None):
         return build_from_cfg(cfg, registry, default_args)
 
 
-def build_model(cfg, train_cfg=None, test_cfg=None):
-    return build(cfg, MODELS, dict(train_cfg=train_cfg, test_cfg=test_cfg))
+def build_backbone(cfg):
+    return build(cfg, BACKBONES)
+
+
+def build_head(cfg):
+    return build(cfg, HEADS)
+
+
+def build_loss(cfg):
+    return build(cfg, LOSSES)
+
+
+def build_posenet(cfg):
+    return build(cfg, POSENET)
