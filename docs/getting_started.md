@@ -76,66 +76,25 @@ Assume that you have already downloaded the checkpoints to the directory `checkp
 1. Test SBL on COCO (without saving the test results) and evaluate the mAP.
 
 ```shell
-python tools/test.py config/i3d_rgb_32x2x1_r50_3d_kinetics400_100e.py \
+python tools/test.py config/sbl_resnet50_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
 ```
 
 2. Test SBL on COCO with 8 GPUS, and evaluate the mAP.
 
 ```shell
-python tools/test.py config/tsn_rgb_1x1x8_r50_2d_sthv1_50e.py \
+python tools/test.py config/sbl_resnet50_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
-    8 --out results.pkl --eval top_k_accuracy
+    8 --out results.pkl --eval mAP
 ```
 
 3. Test SBL on COCO in slurm environment and evaluate the mAP.
 
 ```shell
-python tools/test.py config/i3d_rgb_32x2x1_r50_3d_kinetics400_100e.py \
+python tools/test.py config/sbl_resnet50_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
-    --launcher slurm --eval top_k_accuracy
+    --launcher slurm --eval mAP
 ```
-
-### Video demo
-
-We provide a demo script to predict the recognition result using a single video.
-
-```shell
-python demo/demo.py ${CONFIG_FILE} ${CHECKPOINT_FILE} ${VIDEO_FILE} [--device ${GPU_ID}]
-```
-
-Examples:
-
-```shell
-python demo/demo.py config/tsn_rgb_1x1x3_r50_2d_kinetics400_video_100e.py checkpoints/tsn.pth demo/demo.mp4
-```
-
-### High-level APIs for testing a video.
-
-Here is an example of building the model and test a given video.
-
-```python
-from mmpose.core import init_pose_detector, inference_pose_detector
-
-config_file = 'configs/TopDown/resnet/coco/res18_coco_256x192.py'
-# download the checkpoint from model zoo and put it in `checkpoints/`
-checkpoint_file = 'checkpoints/tsn.pth'
-
- # build the model from a config file and a checkpoint file
-model = init_pose_detector(config_file, checkpoint_file, device='cpu')
-
-# test a single video and show the result:
-video = 'demo/demo.mp4'
-labels = 'demo/label_map.txt'
-result = inference_pose_detector(model, video, labels)
-
-# show the results
-for key in result:
-    print(f'{key}: ', result[key])
-```
-
-A notebook demo can be found in [demo/demo.ipynb](../demo/demo.ipynb)
-
 
 ## Train a model
 
