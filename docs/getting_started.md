@@ -73,17 +73,17 @@ Examples:
 
 Assume that you have already downloaded the checkpoints to the directory `checkpoints/`.
 
-1. Test SBL on COCO (without saving the test results) and evaluate the mAP.
+1. Test SBL(Simple Baselines for Human Pose Estimation and Tracking) on COCO (without saving the test results) and evaluate the mAP.
 
 ```shell
-python tools/test.py config/sbl_resnet50_coco.py \
+python tools/test.py configs/topdown_resnet50_2d_8x64_210e_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
 ```
 
 2. Test SBL on COCO with 8 GPUS, and evaluate the mAP.
 
 ```shell
-python tools/test.py config/sbl_resnet50_coco.py \
+python tools/test.py configs/topdown_resnet50_2d_8x64_210e_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
     8 --out results.pkl --eval mAP
 ```
@@ -91,7 +91,7 @@ python tools/test.py config/sbl_resnet50_coco.py \
 3. Test SBL on COCO in slurm environment and evaluate the mAP.
 
 ```shell
-python tools/test.py config/sbl_resnet50_coco.py \
+python tools/test.py configs/topdown_resnet50_2d_8x64_210e_coco.py \
     checkpoints/SOME_CHECKPOINT.pth \
     --launcher slurm --eval mAP
 ```
@@ -158,7 +158,7 @@ If you can run MMPose on a cluster managed with [slurm](https://slurm.schedmd.co
 Here is an example of using 16 GPUs to train SBL on the dev partition in a slurm cluster. (use `GPUS_PER_NODE=8` to specify a single slurm cluster node with 8 GPUs.)
 
 ```shell
-GPUS_PER_NODE=8 ./tools/slurm_train.sh dev tsn_r50_k400 config/tsn_rgb_1x1x3_r50_2d_kinetics400_100e.py work_dirs/tsn_rgb_1x1x3_r50_2d_kinetics400_100e 16
+GPUS_PER_NODE=8 ./tools/slurm_train.sh config/topdown_resnet50_2d_8x64_210e_coco.py work_dirs/topdown_resnet50_2d_8x64_210e_coco 16
 ```
 
 You can check [slurm_train.sh](../tools/slurm_train.sh) for full arguments and environment variables.
@@ -197,106 +197,6 @@ Then you can launch two jobs with `config1.py` ang `config2.py`.
 CUDA_VISIBLE_DEVICES=0,1,2,3 ./tools/slurm_train.sh ${PARTITION} ${JOB_NAME} config1.py ${WORK_DIR} 4
 CUDA_VISIBLE_DEVICES=4,5,6,7 ./tools/slurm_train.sh ${PARTITION} ${JOB_NAME} config2.py ${WORK_DIR} 4
 ```
-
-## Useful tools
-
-We provide lots of useful tools under `tools/` directory.
-
-### Analyze logs
-
-You can plot loss/top-k acc curves given a training log file. Run `pip install seaborn` first to install the dependency.
-
-![acc_curve_image](./acc_curve.png)
-
-```shell
-python tools/analyze_logs.py plot_curve ${JSON_LOGS} [--keys ${KEYS}] [--title ${TITLE}] [--legend ${LEGEND}] [--backend ${BACKEND}] [--style ${STYLE}] [--out ${OUT_FILE}]
-```
-
-Examples:
-
-- Plot the classification loss of some run.
-
-```shell
-python tools/analyze_logs.py plot_curve log.json --keys loss_cls --legend loss_cls
-```
-
-- Plot the top-1 acc and top-5 acc of some run, and save the figure to a pdf.
-
-```shell
-python tools/analyze_logs.py plot_curve log.json --keys top1_acc top5_acc --out results.pdf
-```
-
-- Compare the top-1 acc of two runs in the same figure.
-
-```shell
-python tools/analyze_logs.py plot_curve log1.json log2.json --keys top1_acc --legend run1 run2
-```
-
-You can also compute the average training speed.
-
-```shell
-python tools/analyze_logs.py cal_train_time ${JSON_LOGS} [--include-outliers]
-```
-
-- Compute the average training speed for a config file
-
-```shell
-python tools/analyze_logs.py cal_train_time work_dirs/some_exp/20200422_153324.log.json
-```
-
-The output is expected to be like the following.
-
-```
------Analyze train time of work_dirs/some_exp/20200422_153324.log.json-----
-slowest epoch 60, average time is 0.9736
-fastest epoch 18, average time is 0.9001
-time std over epochs is 0.0177
-average iter time: 0.9330 s/iter
-
-```
-
-### Get the FLOPs and params (experimental)
-
-We provide a script adapted from [flops-counter.pytorch](https://github.com/sovrasov/flops-counter.pytorch) to compute the FLOPs and params of a given model.
-
-```shell
-python tools/get_flops.py ${CONFIG_FILE} [--shape ${INPUT_SHAPE}]
-```
-
-We will get the result like this
-
-```
-Input shape: (1, 3, 32, 340, 256)
-Flops: 37.1 GMac
-Params: 28.04 M
-```
-
-**Note**: This tool is still experimental and we do not guarantee that the number is correct.
-You may well use the result for simple comparisons, but double check it before you adopt it in technical reports or papers.
-
-(1) FLOPs are related to the input shape while parameters are not. The default input shape is (1, 3, 340, 256) for 2D recognizer, (1, 3, 32, 340, 256) for 3D recognizer.
-(2) Some custom operators are not counted into FLOPs.
-You can add support for new operators by modifying [`mmaction/utils/flops_counter.py`](../mmaction/utils/file_client.py).
-
-### Publish a model
-
-Before you upload a model to AWS, you may want to
-(1) convert model weights to CPU tensors,
-(2) delete the optimizer states and
-(3) compute the hash of the checkpoint file and append the hash id to the filename.
-
-```shell
-python tools/publish_model.py ${INPUT_FILENAME} ${OUTPUT_FILENAME}
-```
-
-E.g.,
-
-```shell
-python tools/publish_model.py work_dirs/tsn_rgb_1x1x3_r50_2d_kinetics400_100e/latest.pth tsn_rgb_1x1x3_r50_2d_kinetics400_100e.pth
-```
-
-The final output filename will be `tsn_rgb_1x1x3_r50_2d_kinetics400_100e-{hash id}.pth`
-
 
 ## Tutorials
 
