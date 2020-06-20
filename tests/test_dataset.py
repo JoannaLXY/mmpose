@@ -1,3 +1,4 @@
+import copy
 from unittest.mock import MagicMock
 
 import pytest
@@ -5,17 +6,16 @@ import pytest
 from mmpose.datasets import DATASETS
 
 
-@pytest.mark.parametrize('dataset', ['TopDownCocoDataset'])
-def test_custom_classes_override_default(dataset):
-    # test datasets
+def test_COCO_dataset():
+    dataset = 'TopDownCocoDataset'
+    # test COCO datasets
     dataset_class = DATASETS.get(dataset)
     dataset_class.load_annotations = MagicMock()
-    if dataset in ['TopDownCocoDataset']:
-        dataset_class.coco = MagicMock()
+    dataset_class.coco = MagicMock()
 
     channel_cfg = dict(
-        num_joints=17,
-        sub_data_name=['coco'],
+        num_output_channels=17,
+        dataset_joints=17,
         dataset_channel=[
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
         ],
@@ -26,8 +26,69 @@ def test_custom_classes_override_default(dataset):
     data_cfg = dict(
         image_size=[192, 256],
         heatmap_size=[48, 64],
-        num_output_channels=channel_cfg['num_joints'],
-        num_joints=channel_cfg['num_joints'],
+        num_output_channels=channel_cfg['num_output_channels'],
+        num_joints=channel_cfg['dataset_joints'],
+        dataset_channel=channel_cfg['dataset_channel'],
+        inference_channel=channel_cfg['inference_channel'],
+        soft_nms=False,
+        nms_thr=1.0,
+        oks_thr=0.9,
+        vis_thr=0.2,
+        bbox_thr=1.0,
+        use_gt_bbox=True,
+        image_thr=0.0,
+        bbox_file='',
+    )
+    # Test gt bbox
+    data_cfg_copy = copy.deepcopy(data_cfg)
+    data_cfg_copy['use_gt_bbox'] = False
+    _ = dataset_class(
+        ann_file='tests/data/test_coco.json',
+        img_prefix='',
+        data_cfg=data_cfg,
+        pipeline=[],
+        test_mode=True)
+
+    _ = dataset_class(
+        ann_file='tests/data/test_coco.json',
+        img_prefix='',
+        data_cfg=data_cfg,
+        pipeline=[],
+        test_mode=False)
+
+    # Test
+    custom_dataset = dataset_class(
+        ann_file='tests/data/test_coco.json',
+        img_prefix='',
+        data_cfg=data_cfg,
+        pipeline=[],
+        test_mode=True)
+
+    assert custom_dataset.test_mode is True
+
+    image_id = 785
+    assert image_id in custom_dataset.image_set_index
+    assert len(custom_dataset.image_set_index) == 4
+
+
+def test_TRB_dataset():
+    dataset = 'TopDownTRBMPIDataset'
+    # test MPII TRB datasets
+    dataset_class = DATASETS.get(dataset)
+    dataset_class.load_annotations = MagicMock()
+    dataset_class.coco = MagicMock()
+
+    channel_cfg = dict(
+        num_output_channels=40,
+        dataset_joints=40,
+        dataset_channel=[list(range(40))],
+        inference_channel=list(range(40)))
+
+    data_cfg = dict(
+        image_size=[256, 256],
+        heatmap_size=[64, 64],
+        num_output_channels=channel_cfg['num_output_channels'],
+        num_joints=channel_cfg['dataset_joints'],
         dataset_channel=channel_cfg['dataset_channel'],
         inference_channel=channel_cfg['inference_channel'],
         soft_nms=False,
@@ -40,12 +101,23 @@ def test_custom_classes_override_default(dataset):
         bbox_file='',
     )
 
+    with pytest.raises(AssertionError):
+        # TRB dataset must use gt bbox
+        data_cfg_copy = copy.deepcopy(data_cfg)
+        data_cfg_copy['use_gt_bbox'] = False
+        _ = dataset_class(
+            ann_file='tests/data/test_trb.json',
+            img_prefix='',
+            data_cfg=data_cfg_copy,
+            pipeline=[],
+            test_mode=True)
+
     # Test setting classes as a tuple
     custom_dataset = dataset_class(
-        ann_file='tests/data/test.json',
+        ann_file='tests/data/test_trb.json',
         img_prefix='',
         data_cfg=data_cfg,
         pipeline=[],
-        test_mode=True)
+        test_mode=False)
 
-    assert custom_dataset.test_mode is True
+    assert custom_dataset.test_mode is False

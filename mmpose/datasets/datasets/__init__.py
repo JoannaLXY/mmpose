@@ -1,3 +1,3 @@
-from .top_down import TopDownCocoDataset
+from .top_down import TopDownCocoDataset, TopDownTRBMPIDataset
 
-__all__ = ['TopDownCocoDataset']
+__all__ = ['TopDownCocoDataset', 'TopDownTRBMPIDataset']
