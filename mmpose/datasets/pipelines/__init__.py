@@ -1,3 +1,3 @@
-from .compose import Compose
-
-__all__ = ['Compose']
+from .compose import Compose  # noqa
+from .loading import LoadImageFromFile  # noqa
+from .top_down.transform import *  # noqa
