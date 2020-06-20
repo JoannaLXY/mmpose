@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 from mmpose.core.post_processing import transform_preds
@@ -126,7 +127,77 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     return acc, avg_acc, cnt
 
 
-def keypoints_from_heatmaps(heatmaps, center, scale, post_process=True):
+def _taylor(hm, coord):
+    """Distribution aware coordinate decoding Method.
+
+    Args:
+        hm: Heatmap
+        coord: Coordinates of the keypoints.
+
+    Returns:
+        Updated coordinates.
+    """
+    heatmap_height = hm.shape[0]
+    heatmap_width = hm.shape[1]
+    px = int(coord[0])
+    py = int(coord[1])
+    if 1 < px < heatmap_width - 2 and 1 < py < heatmap_height - 2:
+        dx = 0.5 * (hm[py][px + 1] - hm[py][px - 1])
+        dy = 0.5 * (hm[py + 1][px] - hm[py - 1][px])
+        dxx = 0.25 * (hm[py][px + 2] - 2 * hm[py][px] + hm[py][px - 2])
+        dxy = 0.25 * (
+            hm[py + 1][px + 1] - hm[py - 1][px + 1] - hm[py + 1][px - 1] +
+            hm[py - 1][px - 1])
+        dyy = 0.25 * (hm[py + 2 * 1][px] - 2 * hm[py][px] + hm[py - 2 * 1][px])
+        derivative = np.array([[dx], [dy]])
+        hessian = np.array([[dxx, dxy], [dxy, dyy]])
+        if dxx * dyy - dxy**2 != 0:
+            hessianinv = np.linalg.inv(hessian)
+            offset = -hessianinv @ derivative
+            offset = np.squeeze(np.array(offset.T), axis=0)
+            coord += offset
+    return coord
+
+
+def _gaussian_blur(hm, kernel=11):
+    """Modulate heatmap distribution with Gaussian.
+     sigma = 0.3*((kernel_size-1)*0.5-1)+0.8
+     sigma~=3 if k=17
+     sigma=2 if k=11;
+     sigma~=1.5 if k=7;
+     sigma~=1 if k=3;
+
+    Args:
+        hm: Heatmaps
+        kernel: Gaussian kernel size.
+
+    Returns:
+        Modulated heatmap distribution.
+    """
+    assert kernel % 2 == 1
+
+    border = (kernel - 1) // 2
+    batch_size = hm.shape[0]
+    num_joints = hm.shape[1]
+    height = hm.shape[2]
+    width = hm.shape[3]
+    for i in range(batch_size):
+        for j in range(num_joints):
+            origin_max = np.max(hm[i, j])
+            dr = np.zeros((height + 2 * border, width + 2 * border))
+            dr[border:-border, border:-border] = hm[i, j].copy()
+            dr = cv2.GaussianBlur(dr, (kernel, kernel), 0)
+            hm[i, j] = dr[border:-border, border:-border].copy()
+            hm[i, j] *= origin_max / np.max(hm[i, j])
+    return hm
+
+
+def keypoints_from_heatmaps(heatmaps,
+                            center,
+                            scale,
+                            post_process=True,
+                            unbiased=False,
+                            kernel=11):
     """Get final keypoint predictions from heatmaps and transform them
     back to the image.
 
@@ -142,6 +213,12 @@ def keypoints_from_heatmaps(heatmaps, center, scale, post_process=True):
         scale (np.ndarray[N, 2]): Scale of the bounding box
             wrt height/width.
         post_process (bool): Option to use post processing or not.
+        unbiased (bool): Option to use unbiased decoding.
+            Paper ref: Zhang et al. Distribution-Aware Coordinate
+            Representation for Human Pose Estimation (CVPR 2020).
+        kernel (int): Gaussian kernel size (K) for modulation, which should
+            match the heatmap gaussian sigma when training.
+            K=17 for sigma=3 and k=11 for sigma=2.
 
     Returns:
         preds (np.ndarray[N, K, 2]): Predicted keypoint location in images.
@@ -152,18 +229,28 @@ def keypoints_from_heatmaps(heatmaps, center, scale, post_process=True):
     N, K, H, W = heatmaps.shape
 
     if post_process:
-        # add +/-0.25 shift to the predicted locations for higher acc.
-        for n in range(N):
-            for k in range(K):
-                hm = heatmaps[n][k]
-                px = int(preds[n][k][0])
-                py = int(preds[n][k][1])
-                if 1 < px < W - 1 and 1 < py < H - 1:
-                    diff = np.array([
-                        hm[py][px + 1] - hm[py][px - 1],
-                        hm[py + 1][px] - hm[py - 1][px]
-                    ])
-                    preds[n][k] += np.sign(diff) * .25
+        if unbiased:  # alleviate biased coordinate
+            assert kernel > 0
+            # apply Gaussian distribution modulation.
+            hm = _gaussian_blur(heatmaps, kernel)
+            hm = np.maximum(hm, 1e-10)
+            hm = np.log(hm)
+            for n in range(N):
+                for k in range(K):
+                    preds[n][k] = _taylor(hm[n][k], preds[n][k])
+        else:
+            # add +/-0.25 shift to the predicted locations for higher acc.
+            for n in range(N):
+                for k in range(K):
+                    hm = heatmaps[n][k]
+                    px = int(preds[n][k][0])
+                    py = int(preds[n][k][1])
+                    if 1 < px < W - 1 and 1 < py < H - 1:
+                        diff = np.array([
+                            hm[py][px + 1] - hm[py][px - 1],
+                            hm[py + 1][px] - hm[py - 1][px]
+                        ])
+                        preds[n][k] += np.sign(diff) * .25
 
     # Transform back to the image
     for i in range(N):

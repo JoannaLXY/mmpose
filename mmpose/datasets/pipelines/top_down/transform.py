@@ -101,7 +101,7 @@ class HalfBodyTransform():
                 else:
                     lower_joints.append(joints_3d[joint_id])
 
-        if np.random.rand() < 0.5 and len(upper_joints) > 2:
+        if np.random.randn() < 0.5 and len(upper_joints) > 2:
             selected_joints = upper_joints
         elif len(lower_joints) > 2:
             selected_joints = lower_joints
