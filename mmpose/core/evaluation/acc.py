@@ -11,12 +11,12 @@ def _calc_distances(preds, targets, normalize):
         num_keypoints: K
 
     Args:
-        preds (np.ndarray[NxKx2]): Predicted keypoint location.
-        targets (np.ndarray[NxKx2]): Groundtruth keypoint location.
-        normalize (np.ndarray[Nx2]): Typical value is heatmap_size/10
+        preds (np.ndarray[N, K, 2]): Predicted keypoint location.
+        targets (np.ndarray[N, K, 2]): Groundtruth keypoint location.
+        normalize (np.ndarray[N, 2]): Typical value is heatmap_size/10
 
     Returns:
-        distances (np.ndarray[KxN]): The normalized distances.
+        distances (np.ndarray[K, N]): The normalized distances.
         If target keypoints are missing, the distance is -1.
     '''
     N, K, _ = preds.shape
@@ -130,9 +130,13 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
 def _taylor(hm, coord):
     """Distribution aware coordinate decoding Method.
 
+    Note:
+        heatmap height: H
+        heatmap width: W
+
     Args:
-        hm: Heatmap
-        coord: Coordinates of the keypoints.
+        hm (np.ndarray[H, W]): Heatmap of a particular joint type.
+        coord (np.ndarray[2,]): Coordinates of the predicted keypoints.
 
     Returns:
         Updated coordinates.
@@ -148,7 +152,7 @@ def _taylor(hm, coord):
         dxy = 0.25 * (
             hm[py + 1][px + 1] - hm[py - 1][px + 1] - hm[py + 1][px - 1] +
             hm[py - 1][px - 1])
-        dyy = 0.25 * (hm[py + 2 * 1][px] - 2 * hm[py][px] + hm[py - 2 * 1][px])
+        dyy = 0.25 * (hm[py + 2][px] - 2 * hm[py][px] + hm[py - 2][px])
         derivative = np.array([[dx], [dy]])
         hessian = np.array([[dxx, dxy], [dxy, dyy]])
         if dxx * dyy - dxy**2 != 0:
@@ -159,7 +163,7 @@ def _taylor(hm, coord):
     return coord
 
 
-def _gaussian_blur(hm, kernel=11):
+def _gaussian_blur(heatmaps, kernel=11):
     """Modulate heatmap distribution with Gaussian.
      sigma = 0.3*((kernel_size-1)*0.5-1)+0.8
      sigma~=3 if k=17
@@ -167,9 +171,17 @@ def _gaussian_blur(hm, kernel=11):
      sigma~=1.5 if k=7;
      sigma~=1 if k=3;
 
+    Note:
+        batch_size: N
+        num_keypoints: K
+        heatmap height: H
+        heatmap width: W
+
     Args:
-        hm: Heatmaps
-        kernel: Gaussian kernel size.
+        heatmaps (np.ndarray[N, K, H, W]): model predicted heatmaps.
+        kernel (int): Gaussian kernel size (K) for modulation, which should
+            match the heatmap gaussian sigma when training.
+            K=17 for sigma=3 and k=11 for sigma=2.
 
     Returns:
         Modulated heatmap distribution.
@@ -177,19 +189,19 @@ def _gaussian_blur(hm, kernel=11):
     assert kernel % 2 == 1
 
     border = (kernel - 1) // 2
-    batch_size = hm.shape[0]
-    num_joints = hm.shape[1]
-    height = hm.shape[2]
-    width = hm.shape[3]
+    batch_size = heatmaps.shape[0]
+    num_joints = heatmaps.shape[1]
+    height = heatmaps.shape[2]
+    width = heatmaps.shape[3]
     for i in range(batch_size):
         for j in range(num_joints):
-            origin_max = np.max(hm[i, j])
+            origin_max = np.max(heatmaps[i, j])
             dr = np.zeros((height + 2 * border, width + 2 * border))
-            dr[border:-border, border:-border] = hm[i, j].copy()
+            dr[border:-border, border:-border] = heatmaps[i, j].copy()
             dr = cv2.GaussianBlur(dr, (kernel, kernel), 0)
-            hm[i, j] = dr[border:-border, border:-border].copy()
-            hm[i, j] *= origin_max / np.max(hm[i, j])
-    return hm
+            heatmaps[i, j] = dr[border:-border, border:-border].copy()
+            heatmaps[i, j] *= origin_max / np.max(heatmaps[i, j])
+    return heatmaps
 
 
 def keypoints_from_heatmaps(heatmaps,
