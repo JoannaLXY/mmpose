@@ -6,6 +6,7 @@ from mmpose.core.post_processing import transform_preds
 
 def _calc_distances(preds, targets, normalize):
     '''Calculate the normalized distances between preds and target.
+
     Note:
         batch_size: N
         num_keypoints: K
@@ -35,7 +36,7 @@ def _distance_acc(distances, thr=0.5):
     Note:
         batch_size: N
     Args:
-        distances (np.ndarray[N,]): The normalized distances.
+        distances (np.ndarray[N, ]): The normalized distances.
         thr (float): Threshold of the distances.
 
     Returns:
@@ -102,8 +103,8 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     Args:
         output (np.ndarray[N, K, H, W]): Model output heatmaps.
         target (np.ndarray[N, K, H, W]): Groundtruth heatmaps.
-        thr
-        normalize
+        thr (float): Threshold of PCK calculation.
+        normalize (np.ndarray[N, 2]): Normalization factor for H&W.
 
     Returns:
         acc (np.ndarray[K]): Accuracy of each keypoint.
@@ -127,7 +128,7 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     return acc, avg_acc, cnt
 
 
-def _taylor(hm, coord):
+def _taylor(heatmap, coord):
     """Distribution aware coordinate decoding Method.
 
     Note:
@@ -135,24 +136,27 @@ def _taylor(hm, coord):
         heatmap width: W
 
     Args:
-        hm (np.ndarray[H, W]): Heatmap of a particular joint type.
+        heatmap (np.ndarray[H, W]): Heatmap of a particular joint type.
         coord (np.ndarray[2,]): Coordinates of the predicted keypoints.
 
     Returns:
         Updated coordinates.
     """
-    heatmap_height = hm.shape[0]
-    heatmap_width = hm.shape[1]
+    H = heatmap.shape[0]
+    W = heatmap.shape[1]
     px = int(coord[0])
     py = int(coord[1])
-    if 1 < px < heatmap_width - 2 and 1 < py < heatmap_height - 2:
-        dx = 0.5 * (hm[py][px + 1] - hm[py][px - 1])
-        dy = 0.5 * (hm[py + 1][px] - hm[py - 1][px])
-        dxx = 0.25 * (hm[py][px + 2] - 2 * hm[py][px] + hm[py][px - 2])
+    if 1 < px < W - 2 and 1 < py < H - 2:
+        dx = 0.5 * (heatmap[py][px + 1] - heatmap[py][px - 1])
+        dy = 0.5 * (heatmap[py + 1][px] - heatmap[py - 1][px])
+        dxx = 0.25 * (
+            heatmap[py][px + 2] - 2 * heatmap[py][px] + heatmap[py][px - 2])
         dxy = 0.25 * (
-            hm[py + 1][px + 1] - hm[py - 1][px + 1] - hm[py + 1][px - 1] +
-            hm[py - 1][px - 1])
-        dyy = 0.25 * (hm[py + 2][px] - 2 * hm[py][px] + hm[py - 2][px])
+            heatmap[py + 1][px + 1] - heatmap[py - 1][px + 1] -
+            heatmap[py + 1][px - 1] + heatmap[py - 1][px - 1])
+        dyy = 0.25 * (
+            heatmap[py + 2 * 1][px] - 2 * heatmap[py][px] +
+            heatmap[py - 2 * 1][px])
         derivative = np.array([[dx], [dy]])
         hessian = np.array([[dxx, dxy], [dxy, dyy]])
         if dxx * dyy - dxy**2 != 0:
@@ -244,23 +248,23 @@ def keypoints_from_heatmaps(heatmaps,
         if unbiased:  # alleviate biased coordinate
             assert kernel > 0
             # apply Gaussian distribution modulation.
-            hm = _gaussian_blur(heatmaps, kernel)
-            hm = np.maximum(hm, 1e-10)
-            hm = np.log(hm)
+            heatmaps = _gaussian_blur(heatmaps, kernel)
+            heatmaps = np.maximum(heatmaps, 1e-10)
+            heatmaps = np.log(heatmaps)
             for n in range(N):
                 for k in range(K):
-                    preds[n][k] = _taylor(hm[n][k], preds[n][k])
+                    preds[n][k] = _taylor(heatmaps[n][k], preds[n][k])
         else:
             # add +/-0.25 shift to the predicted locations for higher acc.
             for n in range(N):
                 for k in range(K):
-                    hm = heatmaps[n][k]
+                    heatmap = heatmaps[n][k]
                     px = int(preds[n][k][0])
                     py = int(preds[n][k][1])
                     if 1 < px < W - 1 and 1 < py < H - 1:
                         diff = np.array([
-                            hm[py][px + 1] - hm[py][px - 1],
-                            hm[py + 1][px] - hm[py - 1][px]
+                            heatmap[py][px + 1] - heatmap[py][px - 1],
+                            heatmap[py + 1][px] - heatmap[py - 1][px]
                         ])
                         preds[n][k] += np.sign(diff) * .25
 
