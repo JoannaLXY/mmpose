@@ -10,7 +10,7 @@ from ..builder import POSENETS
 from .base import BasePose
 
 
-@POSENETS.register_module
+@POSENETS.register_module()
 class TopDown(BasePose):
     """Top-down pose detectors.
 

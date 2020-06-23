@@ -4,7 +4,7 @@ from torch import nn
 BACKBONES = Registry('backbone')
 HEADS = Registry('head')
 LOSSES = Registry('loss')
-POSENET = Registry('posenet')
+POSENETS = Registry('posenet')
 
 
 def build(cfg, registry, default_args=None):
@@ -30,4 +30,4 @@ def build_loss(cfg):
 
 
 def build_posenet(cfg):
-    return build(cfg, POSENET)
+    return build(cfg, POSENETS)
