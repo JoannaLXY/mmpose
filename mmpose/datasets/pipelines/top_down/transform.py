@@ -8,7 +8,7 @@ from mmpose.core.post_processing import (affine_transform, fliplr_joints,
 from mmpose.datasets.builder import PIPELINES
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class ToTensor():
     """Transform image to Tensor.
 
@@ -21,7 +21,7 @@ class ToTensor():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class NormalizeTensor():
     """Normalize the Tensor image (CxHxW), with mean and std.
 
@@ -40,7 +40,7 @@ class NormalizeTensor():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class RandomFlip():
     """Data augmentation with random image flip.
 
@@ -74,7 +74,7 @@ class RandomFlip():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class HalfBodyTransform():
     """Data augmentation with half-body transform. Keep only
         the upper body or the lower body at random.
@@ -149,7 +149,7 @@ class HalfBodyTransform():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class RandomScaleRotation():
     """Data augmentation with random scaling & rotating.
 
@@ -182,7 +182,7 @@ class RandomScaleRotation():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class AffineTransform():
     """Affine transform the image to make input."""
 
@@ -213,7 +213,7 @@ class AffineTransform():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class GenerateTarget():
     """Generate the target heatmap.
 
@@ -330,7 +330,7 @@ class GenerateTarget():
         return results
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class Collect(object):
     """Collect data from the loader relevant to the specific task.
 

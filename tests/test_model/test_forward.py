@@ -15,10 +15,14 @@ def test_topdown_forward():
             out_channels=17,
         ),
         train_cfg=dict(),
-        test_cfg=dict(flip_test=True, post_process=True, shift_heatmap=True),
+        test_cfg=dict(
+            flip_test=False,
+            post_process=True,
+            shift_heatmap=True,
+            unbiased_decoding=False,
+            modulate_kernel=11),
         loss_pose=dict(type='JointsMSELoss', use_target_weight=False))
 
-    model_cfg['test_cfg']['flip_test'] = False
     detector = TopDown(model_cfg['backbone'], model_cfg['keypoint_head'],
                        model_cfg['train_cfg'], model_cfg['test_cfg'],
                        model_cfg['pretrained'], model_cfg['loss_pose'])
@@ -61,10 +65,14 @@ def test_topdown_forward():
             extra=dict(final_conv_kerne=1, ),
         ),
         train_cfg=dict(),
-        test_cfg=dict(flip_test=True, post_process=True, shift_heatmap=True),
+        test_cfg=dict(
+            flip_test=True,
+            post_process=True,
+            shift_heatmap=True,
+            unbiased_decoding=False,
+            modulate_kernel=11),
         loss_pose=dict(type='JointsMSELoss', use_target_weight=False))
 
-    model_cfg['test_cfg']['flip_test'] = True
     detector = TopDown(model_cfg['backbone'], model_cfg['keypoint_head'],
                        model_cfg['train_cfg'], model_cfg['test_cfg'],
                        model_cfg['pretrained'], model_cfg['loss_pose'])
