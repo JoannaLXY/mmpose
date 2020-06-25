@@ -38,7 +38,8 @@ test:
 pages:
   stage: deploy
   script:
-    - pip install sphinx sphinx_rtd_theme recommonmark
+    - pip install mmcv
+    - pip install sphinx sphinx_rtd_theme recommonmark sphinx-markdown-tables
     - cd docs
     - make html
     - cd ..
