@@ -61,7 +61,7 @@ python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} ${GPU_NUM} [--out ${RESUL
 
 Optional arguments:
 - `RESULT_FILE`: Filename of the output results. If not specified, the results will not be saved to a file.
-- `EVAL_METRICS`: Items to be evaluated on the results. Allowed values depend on the dataset, e.g., `top_k_accuracy`, `mean_class_accuracy` are available for all datasets in recognition, `mean_average_precision` for Multi-Moments in Time, `AR@AN` for ActivityNet, etc.
+- `EVAL_METRICS`: Items to be evaluated on the results. Allowed values depend on the dataset.
 - `NUM_PROC_PER_GPU`: Number of processes per GPU. If not specified, only one process will be assigned for a single gpu.
 - `--gpu_collect`: If specified, recognition results will be collected using gpu communication. Otherwise, it will save the results on different gpus to `TMPDIR` and collect them by the rank 0 worker.
 - `TMPDIR`: Temporary directory used for collecting results from multiple workers, available when `--gpu_collect` is not specified.
