@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_array_almost_equal
 
 from mmpose.core import keypoints_from_heatmaps, pose_pck_accuracy
@@ -28,6 +29,19 @@ def test_keypoints_from_heatmaps():
     scale = np.array([[64, 64]])
 
     preds, maxvals = keypoints_from_heatmaps(heatmaps, center, scale)
+
+    assert_array_almost_equal(preds, np.array([[[126, 126]]]), decimal=4)
+    assert_array_almost_equal(maxvals, np.array([[[2]]]), decimal=4)
+    assert isinstance(preds, np.ndarray)
+    assert isinstance(maxvals, np.ndarray)
+
+    with pytest.raises(AssertionError):
+        # kernel should > 0
+        _ = keypoints_from_heatmaps(
+            heatmaps, center, scale, unbiased=True, kernel=0)
+
+    preds, maxvals = keypoints_from_heatmaps(
+        heatmaps, center, scale, unbiased=True)
 
     assert_array_almost_equal(preds, np.array([[[126, 126]]]), decimal=4)
     assert_array_almost_equal(maxvals, np.array([[[2]]]), decimal=4)

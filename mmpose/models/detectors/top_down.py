@@ -180,7 +180,9 @@ class TopDown(BasePose):
             output.clone().cpu().numpy(),
             c,
             s,
-            post_process=self.test_cfg['post_process'])
+            post_process=self.test_cfg['post_process'],
+            unbiased=self.test_cfg['unbiased_decoding'],
+            kernel=self.test_cfg['modulate_kernel'])
 
         all_preds = np.zeros((1, output.shape[1], 3), dtype=np.float32)
         all_boxes = np.zeros((1, 6))
