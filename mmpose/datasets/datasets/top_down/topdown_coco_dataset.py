@@ -1,6 +1,5 @@
 import json
 import os
-import random
 from collections import OrderedDict, defaultdict
 
 import numpy as np
@@ -8,11 +7,11 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from mmpose.core.post_processing import oks_nms, soft_oks_nms
-from mmpose.datasets.builder import DATASETS
+from ...builder import DATASETS
 from .topdown_base_dataset import TopDownBaseDataset
 
 
-@DATASETS.register_module
+@DATASETS.register_module()
 class TopDownCocoDataset(TopDownBaseDataset):
     """CocoDataset dataset for top-down pose estimation.
 
@@ -37,6 +36,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
                  test_mode=False):
         super().__init__(
             ann_file, img_prefix, data_cfg, pipeline, test_mode=test_mode)
+
+        self.use_gt_bbox = data_cfg['use_gt_bbox']
+        self.bbox_file = data_cfg['bbox_file']
+        self.image_thr = data_cfg['image_thr']
 
         self.soft_nms = data_cfg['soft_nms']
         self.nms_thr = data_cfg['nms_thr']
@@ -108,17 +111,17 @@ class TopDownCocoDataset(TopDownBaseDataset):
         height = im_ann['height']
         num_joints = self.ann_info['num_joints']
 
-        annIds = self.coco.getAnnIds(imgIds=index, iscrowd=False)
-        objs = self.coco.loadAnns(annIds)
+        ann_ids = self.coco.getAnnIds(imgIds=index, iscrowd=False)
+        objs = self.coco.loadAnns(ann_ids)
 
         # sanitize bboxes
         valid_objs = []
         for obj in objs:
             x, y, w, h = obj['bbox']
-            x1 = np.max((0, x))
-            y1 = np.max((0, y))
-            x2 = np.min((width - 1, x1 + np.max((0, w - 1))))
-            y2 = np.min((height - 1, y1 + np.max((0, h - 1))))
+            x1 = max(0, x)
+            y1 = max(0, y)
+            x2 = min(width - 1, x1 + max(0, w - 1))
+            y2 = min(height - 1, y1 + max(0, h - 1))
             if obj['area'] > 0 and x2 >= x1 and y2 >= y1:
                 obj['clean_bbox'] = [x1, y1, x2 - x1, y2 - y1]
                 valid_objs.append(obj)
@@ -126,10 +129,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
         rec = []
         for obj in objs:
-
             if max(obj['keypoints']) == 0:
                 continue
-
             joints_3d = np.zeros((num_joints, 3), dtype=np.float)
             joints_3d_visible = np.zeros((num_joints, 3), dtype=np.float)
             for ipt in range(num_joints):
@@ -175,22 +176,18 @@ class TopDownCocoDataset(TopDownBaseDataset):
         """
         aspect_ratio = self.ann_info['image_size'][0] / self.ann_info[
             'image_size'][1]
-        center = np.zeros((2), dtype=np.float32)
-        center[0] = x + w * 0.5
-        center[1] = y + h * 0.5
+        center = np.array([x + w * 0.5, y + h * 0.5], dtype=np.float32)
 
-        dice1 = random.random()
-        if (not self.test_mode) and dice1 > 0.7:
-            dice_x = random.random()
-            center[0] = center[0] + (dice_x - 0.5) * w * 0.4
-            dice_y = random.random()
-            center[1] = center[1] + (dice_y - 0.5) * h * 0.4
+        if (not self.test_mode) and np.random.rand() < 0.3:
+            center += 0.4 * (np.random.rand(2) - 0.5) * [w, h]
 
         if w > aspect_ratio * h:
             h = w * 1.0 / aspect_ratio
         elif w < aspect_ratio * h:
             w = h * aspect_ratio
-        scale = np.array([w * 1.0, h * 1.0], dtype=np.float32)
+
+        # pixel std is 200.
+        scale = np.array([w / 200., h / 200.], dtype=np.float32)
 
         scale = scale * 1.25
 
@@ -232,10 +229,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
             joints_3d = np.zeros((num_joints, 3), dtype=np.float)
             joints_3d_visible = np.ones((num_joints, 3), dtype=np.float)
             kpt_db.append({
-                'image': img_name,
+                'image_file': img_name,
                 'center': center,
                 'scale': scale,
-                'score': score,
+                'bbox_score': score,
                 'dataset': 'coco',
                 'rotation': 0,
                 'imgnum': 0,
@@ -248,8 +245,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
     def evaluate(self, outputs, res_folder, metrics='mAP', **kwargs):
         """Evaluate coco keypoint results.
+
         Note:
             num_keypoints: K
+
         Args:
             outputs(list(preds, boxes, image_path)):Output results.
                 preds(np.ndarray[1,K,3]): The first two dimensions are
@@ -269,24 +268,20 @@ class TopDownCocoDataset(TopDownBaseDataset):
         """
 
         res_file = os.path.join(res_folder, 'result_keypoints.json')
-        _kpts = []
-        for i in range(len(outputs)):
-            preds, boxes, image_path = outputs[i]
-            str_image_path = ''.join(image_path)
 
-            _kpts.append({
+        kpts = defaultdict(list)
+        for preds, boxes, image_path in outputs:
+            str_image_path = ''.join(image_path)
+            image_id = int(str_image_path[-16:-4])
+
+            kpts[image_id].append({
                 'keypoints': preds[0],
                 'center': boxes[0][0:2],
                 'scale': boxes[0][2:4],
                 'area': boxes[0][4],
                 'score': boxes[0][5],
-                'image': int(str_image_path[-16:-4]),
+                'image': image_id,
             })
-
-        # image x person x (keypoints)
-        kpts = defaultdict(list)
-        for kpt in _kpts:
-            kpts[kpt['image']].append(kpt)
 
         # rescoring and oks nms
         num_joints = self.ann_info['num_joints']
@@ -359,24 +354,19 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 continue
 
             _key_points = np.array(
-                [img_kpts[k]['keypoints'] for k in range(len(img_kpts))])
-            key_points = np.zeros(
-                (_key_points.shape[0], self.ann_info['num_joints'] * 3),
-                dtype=np.float)
-
-            for ipt in range(self.ann_info['num_joints']):
-                key_points[:, ipt * 3 + 0] = _key_points[:, ipt, 0]
-                key_points[:, ipt * 3 + 1] = _key_points[:, ipt, 1]
-                key_points[:, ipt * 3 + 2] = _key_points[:, ipt, 2]
+                [img_kpt['keypoints'] for img_kpt in img_kpts])
+            key_points = _key_points.reshape(-1,
+                                             self.ann_info['num_joints'] * 3)
 
             result = [{
-                'image_id': img_kpts[k]['image'],
+                'image_id': img_kpt['image'],
                 'category_id': cat_id,
-                'keypoints': list(key_points[k]),
-                'score': img_kpts[k]['score'],
-                'center': list(img_kpts[k]['center']),
-                'scale': list(img_kpts[k]['scale'])
-            } for k in range(len(img_kpts))]
+                'keypoints': list(keypoint),
+                'score': img_kpt['score'],
+                'center': list(img_kpt['center']),
+                'scale': list(img_kpt['scale'])
+            } for img_kpt, keypoint in zip(img_kpts, key_points)]
+
             cat_results.extend(result)
 
         return cat_results

@@ -1,8 +1,6 @@
 import copy
 from unittest.mock import MagicMock
 
-import pytest
-
 from mmpose.datasets import DATASETS
 
 
@@ -90,27 +88,7 @@ def test_TRB_dataset():
         num_output_channels=channel_cfg['num_output_channels'],
         num_joints=channel_cfg['dataset_joints'],
         dataset_channel=channel_cfg['dataset_channel'],
-        inference_channel=channel_cfg['inference_channel'],
-        soft_nms=False,
-        nms_thr=1.0,
-        oks_thr=0.9,
-        vis_thr=0.2,
-        bbox_thr=1.0,
-        use_gt_bbox=True,
-        image_thr=0.0,
-        bbox_file='',
-    )
-
-    with pytest.raises(AssertionError):
-        # TRB dataset must use gt bbox
-        data_cfg_copy = copy.deepcopy(data_cfg)
-        data_cfg_copy['use_gt_bbox'] = False
-        _ = dataset_class(
-            ann_file='tests/data/test_trb.json',
-            img_prefix='',
-            data_cfg=data_cfg_copy,
-            pipeline=[],
-            test_mode=True)
+        inference_channel=channel_cfg['inference_channel'])
 
     # Test setting classes as a tuple
     custom_dataset = dataset_class(

@@ -39,10 +39,6 @@ class TopDownBaseDataset(Dataset, metaclass=ABCMeta):
         self.pipeline = pipeline
         self.test_mode = test_mode
 
-        self.use_gt_bbox = data_cfg['use_gt_bbox']
-        self.bbox_file = data_cfg['bbox_file']
-        self.image_thr = data_cfg['image_thr']
-
         self.ann_info['image_size'] = np.array(data_cfg['image_size'])
         self.ann_info['heatmap_size'] = np.array(data_cfg['heatmap_size'])
         self.ann_info['num_joints'] = data_cfg['num_joints']
