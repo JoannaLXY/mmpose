@@ -6,7 +6,7 @@ import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-from mmpose.core.post_processing import oks_nms, soft_oks_nms
+from ....core.post_processing import oks_nms, soft_oks_nms
 from ...builder import DATASETS
 from .topdown_base_dataset import TopDownBaseDataset
 
