@@ -39,9 +39,6 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
         super().__init__(
             ann_file, img_prefix, data_cfg, pipeline, test_mode=test_mode)
 
-        # For MPII-trb dataset, only gt bboxes are used.
-        assert self.use_gt_bbox
-
         self.ann_info['flip_pairs'] = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9],
                                        [10, 11], [14, 15]]
         for i in range(6):
@@ -75,8 +72,6 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
         print('=> load {} samples'.format(len(self.db)))
 
     def _get_db(self):
-        # For MPII-trb dataset, only gt bbox is used.
-        assert self.use_gt_bbox
         # use ground truth bbox
         gt_db = self._load_trb_keypoint_annotations()
         return gt_db
