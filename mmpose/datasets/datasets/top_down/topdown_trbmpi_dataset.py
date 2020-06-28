@@ -234,7 +234,7 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
                 'scale': boxes[0][2:4],
                 'area': boxes[0][4],
                 'score': boxes[0][5],
-                'image': image_id,
+                'image_id': image_id,
             }
             results.append(pred_kpt)
             kpts[image_id].append(pred_kpt)
@@ -282,7 +282,7 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
                                              self.ann_info['num_joints'] * 3)
 
             result = [{
-                'image_id': img_kpt['image'],
+                'image_id': img_kpt['image_id'],
                 'category_id': cat_id,
                 'keypoints': list(keypoint),
                 'score': img_kpt['score'],
