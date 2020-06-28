@@ -13,7 +13,7 @@ from .registry import OPTIMIZERS
 from torch.optim import Optimizer
 
 
-@OPTIMIZERS.register_module
+@OPTIMIZERS.register_module()
 class MyOptimizer(Optimizer):
 
     def __init__(self, a, b, c)
@@ -57,7 +57,7 @@ from mmpose.utils import get_root_logger
 from .cocktail_optimizer import CocktailOptimizer
 
 
-@OPTIMIZER_BUILDERS.register_module
+@OPTIMIZER_BUILDERS.register_module()
 class CocktailOptimizerConstructor(object):
 
     def __init__(self, optimizer_cfg, paramwise_cfg=None):
@@ -84,7 +84,7 @@ import torch.nn as nn
 
 from ..registry import BACKBONES
 
-@BACKBONES.register_module
+@BACKBONES.register_module()
 class MyModel(nn.Module):
 
     def __init__(self, arg1, arg2):
@@ -112,7 +112,7 @@ and overwrite `init_weights(self)` and `forward(self, x)` method.
 from ..registry import HEADS
 
 
-@HEADS.register_module
+@HEADS.register_module()
 class MyHead(nn.Module):
 
     def __init__(self, arg1, arg2):
@@ -166,7 +166,7 @@ def my_loss(pred, target):
     loss = torch.mean(loss)
     return loss
 
-@LOSSES.register_module
+@LOSSES.register_module()
 class MyLoss(nn.Module):
 
     def __init__(self, use_target_weight=False):

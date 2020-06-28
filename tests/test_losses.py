@@ -1,11 +1,14 @@
 import pytest
 import torch
 
-from mmpose.models.losses import JointsMSELoss, JointsOHKMMSELoss
-
 
 def test_mse_loss():
-    loss = JointsMSELoss()
+    from mmpose.models import build_loss
+
+    # test MSE loss without target weight
+    loss_cfg = dict(type='JointsMSELoss')
+    loss = build_loss(loss_cfg)
+
     fake_pred = torch.zeros((1, 3, 64, 64))
     fake_label = torch.zeros((1, 3, 64, 64))
     assert torch.allclose(loss(fake_pred, fake_label, None), torch.tensor(0.))
@@ -20,24 +23,29 @@ def test_mse_loss():
     assert torch.allclose(loss(fake_pred, fake_label, None), torch.tensor(0.5))
 
     with pytest.raises(ValueError):
-        loss = JointsOHKMMSELoss()
+        loss_cfg = dict(type='JointsOHKMMSELoss')
+        loss = build_loss(loss_cfg)
         fake_pred = torch.zeros((1, 3, 64, 64))
         fake_label = torch.zeros((1, 3, 64, 64))
         assert torch.allclose(
             loss(fake_pred, fake_label, None), torch.tensor(0.))
 
     with pytest.raises(AssertionError):
-        loss = JointsOHKMMSELoss(topk=-1)
+        loss_cfg = dict(type='JointsOHKMMSELoss', topk=-1)
+        loss = build_loss(loss_cfg)
         fake_pred = torch.zeros((1, 3, 64, 64))
         fake_label = torch.zeros((1, 3, 64, 64))
         assert torch.allclose(
             loss(fake_pred, fake_label, None), torch.tensor(0.))
 
-    loss = JointsOHKMMSELoss(topk=2)
+    loss_cfg = dict(type='JointsOHKMMSELoss', topk=2)
+    loss = build_loss(loss_cfg)
     fake_pred = torch.ones((1, 3, 64, 64))
     fake_label = torch.zeros((1, 3, 64, 64))
     assert torch.allclose(loss(fake_pred, fake_label, None), torch.tensor(1.))
 
+    loss_cfg = dict(type='JointsOHKMMSELoss', topk=2)
+    loss = build_loss(loss_cfg)
     fake_pred = torch.zeros((1, 3, 64, 64))
     fake_pred[0, 0] += 1
     fake_label = torch.zeros((1, 3, 64, 64))

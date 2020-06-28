@@ -5,7 +5,7 @@ from mmcv.cnn import (build_conv_layer, build_upsample_layer, constant_init,
 from ..builder import HEADS
 
 
-@HEADS.register_module
+@HEADS.register_module()
 class MultiStageHead(nn.Module):
     """Heads for multi-stage pose models.
 

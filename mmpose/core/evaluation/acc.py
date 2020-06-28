@@ -129,7 +129,7 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
 
 
 def _taylor(heatmap, coord):
-    """Distribution aware coordinate decoding method.
+    """Distribution aware coordinate decoding Method.
 
     Note:
         heatmap height: H

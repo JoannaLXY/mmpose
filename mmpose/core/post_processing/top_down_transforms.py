@@ -141,8 +141,11 @@ def get_affine_transform(center,
     assert len(output_size) == 2
     assert len(shift) == 2
 
+    # pixel_std is 200.
+    scale_tmp = scale * 200.0
+
     shift = np.array(shift)
-    src_w = scale[0]
+    src_w = scale_tmp[0]
     dst_w = output_size[0]
     dst_h = output_size[1]
 
@@ -151,8 +154,8 @@ def get_affine_transform(center,
     dst_dir = np.array([0., dst_w * -0.5])
 
     src = np.zeros((3, 2), dtype=np.float32)
-    src[0, :] = center + scale * shift
-    src[1, :] = center + src_dir + scale * shift
+    src[0, :] = center + scale_tmp * shift
+    src[1, :] = center + src_dir + scale_tmp * shift
     src[2, :] = get_3rd_point(src[0, :], src[1, :])
 
     dst = np.zeros((3, 2), dtype=np.float32)

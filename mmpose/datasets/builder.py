@@ -42,6 +42,7 @@ def build_dataloader(dataset,
                      dist=True,
                      shuffle=True,
                      seed=None,
+                     drop_last=True,
                      **kwargs):
     """Build PyTorch DataLoader.
 
@@ -58,6 +59,8 @@ def build_dataloader(dataset,
         dist (bool): Distributed training/test or not. Default: True.
         shuffle (bool): Whether to shuffle the data at every epoch.
             Default: True.
+        drop_last (bool): Whether to drop the last incomplete batch in epoch.
+            Default: True
         kwargs: any keyword argument to be used to initialize DataLoader
 
     Returns:
@@ -87,6 +90,7 @@ def build_dataloader(dataset,
         collate_fn=partial(collate, samples_per_gpu=samples_per_gpu),
         shuffle=shuffle,
         worker_init_fn=init_fn,
+        drop_last=drop_last,
         **kwargs)
 
     return data_loader

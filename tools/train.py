@@ -12,12 +12,12 @@ from mmcv.runner import init_dist
 from mmpose import __version__
 from mmpose.apis import set_random_seed, train_model
 from mmpose.datasets import build_dataset
-from mmpose.models import build_model
+from mmpose.models import build_posenet
 from mmpose.utils import collect_env, get_root_logger
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train a model')
+    parser = argparse.ArgumentParser(description='Train a pose model')
     parser.add_argument('config', help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(
@@ -64,14 +64,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-
     cfg = Config.fromfile(args.config)
     if args.options is not None:
         cfg.merge_from_dict(args.options)
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
-
     # work_dir is determined in this priority: CLI > segment in file > filename
     if args.work_dir is not None:
         # update configs according to CLI args if args.work_dir is not None
@@ -128,23 +126,21 @@ def main():
     cfg.seed = args.seed
     meta['seed'] = args.seed
 
-    model = build_model(
-        cfg.model, train_cfg=cfg.train_cfg, test_cfg=cfg.test_cfg)
-
+    model = build_posenet(cfg.model)
     datasets = [build_dataset(cfg.data.train)]
+
     if len(cfg.workflow) == 2:
         val_dataset = copy.deepcopy(cfg.data.val)
         val_dataset.pipeline = cfg.data.train.pipeline
         datasets.append(build_dataset(val_dataset))
+
     if cfg.checkpoint_config is not None:
-        # save mmpose version, config file content and class names in
+        # save mmpose version, config file content
         # checkpoints as meta data
         cfg.checkpoint_config.meta = dict(
             mmpose_version=__version__,
             config=cfg.pretty_text,
-            CLASSES=datasets[0].CLASSES)
-    # add an attribute for visualization convenience
-    model.CLASSES = datasets[0].CLASSES
+        )
     train_model(
         model,
         datasets,
