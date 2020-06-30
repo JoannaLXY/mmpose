@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import mmcv
 import numpy as np
@@ -5,9 +7,10 @@ import torch
 from mmcv.parallel import collate, scatter
 from mmcv.runner import load_checkpoint
 
-from mmpose.core.evaluation import keypoints_from_heatmaps
 from mmpose.datasets.pipelines import Compose
 from mmpose.models import build_posenet
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 
 def init_pose_model(config, checkpoint=None, device='cuda:0'):
@@ -30,7 +33,7 @@ def init_pose_model(config, checkpoint=None, device='cuda:0'):
     config.model.pretrained = None
     model = build_posenet(config.model)
     # load model checkpoint
-    load_checkpoint(model, checkpoint)
+    load_checkpoint(model, checkpoint, map_location=device)
     # save the config in the model for convenience
     model.cfg = config
     model.to(device)
@@ -70,16 +73,17 @@ def box2cs(cfg, box):
 def inference_pose_model(model, img, bbox):
     """Inference image(s) with the pose model.
 
+    num_keypoints: K
+
     Args:
         model (nn.Module): The loaded pose model.
         imgs (str/ndarray or list[str/ndarray]): Either image files or loaded
             images.
-        bbox (ndarray): Bounding boxes (with scores), shaped (n, 4) or (n, 5).
-            (left, top, width, height, [score])
+        bbox (list|ndarray): Bounding boxes (with scores),
+            shaped (4, ) or (5, ). (left, top, width, height, [score])
 
     Returns:
-        If imgs is a str, a generator will be returned, otherwise return the
-        detection results directly.
+        predicted poses (ndarray[Kx3]): x, y, score
     """
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
@@ -92,13 +96,21 @@ def inference_pose_model(model, img, bbox):
         'image_file': img,
         'center': center,
         'scale': scale,
-        'bbox_score': bbox[4],
+        'bbox_score': bbox[4] if len(bbox) == 5 else 1,
         'dataset': 'coco',
         'rotation': 0,
         'imgnum': 0,
         'joints_3d': np.zeros((cfg.data_cfg.num_joints, 3), dtype=np.float),
         'joints_3d_visible': np.zeros((cfg.data_cfg.num_joints, 3),
-                                      dtype=np.float)
+                                      dtype=np.float),
+        'ann_info': {
+            'image_size':
+            cfg.data_cfg['image_size'],
+            'num_joints':
+            cfg.data_cfg['num_joints'],
+            'flip_pairs': [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12],
+                           [13, 14], [15, 16]],
+        }
     }
     data = test_pipeline(data)
     data = collate([data], samples_per_gpu=1)
@@ -106,28 +118,17 @@ def inference_pose_model(model, img, bbox):
         # scatter to specified GPU
         data = scatter(data, [device])[0]
 
-    pose_result = []
     # forward the model
     with torch.no_grad():
-        heatmaps = model(return_loss=False, rescale=True, **data)
+        all_preds, _, _ = model(return_loss=False, rescale=True, **data)
 
-        coords, scores = keypoints_from_heatmaps(
-            heatmaps,
-            center,
-            scale,
-            post_process=True,
-            unbiased=False,
-            kernel=11)
-
-        pose_result.append(np.concatenate((coords, scores), 2))
-
-    return pose_result
+    return all_preds[0]
 
 
 def show_result_pyplot(model,
                        img,
                        result,
-                       score_thr=0.3,
+                       kpt_score_thr=0.3,
                        skeleton=None,
                        fig_size=(15, 10)):
     """Visualize the detection results on the image.
@@ -137,7 +138,7 @@ def show_result_pyplot(model,
         img (str or np.ndarray): Image filename or loaded image.
         result (list[dict]): The results to draw over `img`
                 (bbox_result, pose_result).
-        score_thr (float): The threshold to visualize the keypoints.
+        kpt_score_thr (float): The threshold to visualize the keypoints.
         skeleton (list[tuple()]):
         fig_size (tuple): Figure size of the pyplot figure.
     """
@@ -145,7 +146,7 @@ def show_result_pyplot(model,
         model = model.module
 
     img = model.show_result(
-        img, result, skeleton, score_thr=score_thr, show=False)
+        img, result, skeleton, kpt_score_thr=kpt_score_thr, show=False)
 
     plt.figure(figsize=fig_size)
     plt.imshow(mmcv.bgr2rgb(img))
@@ -156,7 +157,7 @@ def save_result_visualization(model,
                               img,
                               result,
                               out_file=None,
-                              score_thr=0.3,
+                              kpt_score_thr=0.3,
                               skeleton=None):
     """Visualize the detection results on the image.
 
@@ -165,7 +166,7 @@ def save_result_visualization(model,
         img (str or np.ndarray): Image filename or loaded image.
         result (Tensor or tuple): The results to draw over `img`
                 (bbox_result, pose_result).
-        score_thr (float): The threshold to visualize the keypoints.
+        kpt_score_thr (float): The threshold to visualize the keypoints.
         skeleton (list[tuple()]):
         out_file (str or None): The filename to write the image.
                 Default: None.
@@ -178,7 +179,7 @@ def save_result_visualization(model,
         img,
         result,
         skeleton,
-        score_thr=score_thr,
+        kpt_score_thr=kpt_score_thr,
         show=False,
         out_file=out_file)
     return 0

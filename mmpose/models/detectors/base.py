@@ -88,7 +88,7 @@ class BasePose(nn.Module):
         """
         img = mmcv.imread(img)
         img = img.copy()
-        img_h, img_w, _ = img.shape()
+        img_h, img_w, _ = img.shape
 
         bbox_result = []
         pose_result = []
@@ -116,7 +116,7 @@ class BasePose(nn.Module):
 
         for person_id, kpts in enumerate(pose_result):
             # draw each point on image
-            for kid, kpt in kpts:
+            for kid, kpt in enumerate(kpts):
                 x_coord, y_coord, kpt_score = int(kpt[0]), int(kpt[1]), kpt[2]
                 if kpt_score > kpt_score_thr:
                     cv2.circle(img, (x_coord, y_coord), radius, pose_kpt_color,

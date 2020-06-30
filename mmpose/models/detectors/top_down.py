@@ -142,7 +142,9 @@ class TopDown(BasePose):
         assert img.size(0) == 1
         assert len(img_metas) == 1
 
-        img_metas = img_metas[0]
+        # TODO: how to deal with DC?
+        # img_metas = img_metas[0]
+        img_metas = img_metas.data[0][0]
 
         flip_pairs = img_metas['flip_pairs']
         # compute output
@@ -164,7 +166,8 @@ class TopDown(BasePose):
             output_flipped = flip_back(output_flipped.cpu().numpy(),
                                        flip_pairs)
 
-            output_flipped = torch.from_numpy(output_flipped.copy()).cuda()
+            output_flipped = torch.from_numpy(output_flipped.copy()).to(
+                output.device)
 
             # feature is not aligned, shift flipped heatmap for higher accuracy
             if self.test_cfg['shift_heatmap']:

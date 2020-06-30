@@ -1,5 +1,7 @@
+import os
 from argparse import ArgumentParser
 
+import numpy as np
 from mmdet.apis import inference_detector, init_detector
 from tqdm import tqdm
 
@@ -41,10 +43,22 @@ def _xywh2xyxy(bbox_xywh):
 
 
 def main():
+    """Visualize the demo images.
+
+    If json_file is given,
+
+    """
     parser = ArgumentParser()
-    parser.add_argument('img', help='Image file')
     parser.add_argument('pose_config', help='Config file for detection')
     parser.add_argument('pose_checkpoint', help='Checkpoint file')
+    parser.add_argument(
+        '--img_prefix', type=str, default='', help='Image prefix')
+    parser.add_argument('--img', type=str, default='', help='Image file')
+    parser.add_argument(
+        '--json_file',
+        type=str,
+        default='',
+        help='Json file containing image info.')
     parser.add_argument(
         '--det_config', default=None, help='Config file for detection')
     parser.add_argument(
@@ -54,10 +68,15 @@ def main():
     parser.add_argument(
         '--box_thr', type=float, default=0.3, help='box score threshold')
     parser.add_argument(
-        '--pose_thr', type=float, default=0.3, help='box score threshold')
+        '--kpt_thr', type=float, default=0.3, help='box score threshold')
     args = parser.parse_args()
 
-    if args.load_json_file == '':
+    skeleton = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12],
+                [7, 13], [6, 7], [6, 8], [7, 9], [8, 10], [9, 11], [2, 3],
+                [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
+
+    if args.json_file == '':
+        assert args.img != ''
         assert args.det_config is not None
         assert args.det_checkpoint is not None
 
@@ -67,29 +86,32 @@ def main():
         pose_model = init_pose_model(
             args.pose_config, args.pose_checkpoint, device=args.device)
 
+        image_name = os.path.join(args.img_prefix, args.img)
+
         # test a single image, the resulting box is (x1, y1, x2, y2)
-        box_results = inference_detector(det_model, args.img)
+        box_results = inference_detector(det_model, image_name)
         person_bboxes = box_results[0][0]
-        person_bboxes = _xyxy2xywh(person_bboxes)
+        person_bboxes = _xyxy2xywh(np.array(person_bboxes))
         pose_results = []
 
         if len(person_bboxes) > 0:
             bboxes = person_bboxes[person_bboxes[:, 4] > args.box_thr]
             for bbox in bboxes:
-                pose = inference_pose_model(pose_model, args.img, bbox)
+                pose = inference_pose_model(pose_model, image_name, bbox)
                 pose_results.append({
-                    'bbox': _xywh2xyxy(bbox),
-                    'keypoints': pose,
+                    'bbox':
+                    _xywh2xyxy(np.expand_dims(np.array(bbox), 0)),
+                    'keypoints':
+                    pose,
                 })
 
         # show the results
         show_result_pyplot(
-            pose_model, args.img, pose_results, score_thr=args.score_thr)
+            pose_model, image_name, pose_results, kpt_score_thr=args.kpt_thr)
 
     else:
         from pycocotools.coco import COCO
-        coco = COCO(args.load_json_file)
-
+        coco = COCO(args.json_file)
         # build the pose model from a config file and a checkpoint file
         pose_model = init_pose_model(
             args.pose_config, args.pose_checkpoint, device=args.device)
@@ -99,19 +121,26 @@ def main():
         for i in tqdm(range(len(img_keys))):
             image_id = img_keys[i]
             image = coco.loadImgs(image_id)[0]
-            img_name = image['file_name']
-            anns = coco.getAnnIds(image_id)
+            image_name = os.path.join(args.img_prefix, image['file_name'])
+            ann_ids = coco.getAnnIds(image_id)
             pose_results = []
-            for ann in anns:
+            for ann_id in ann_ids:
+                ann = coco.anns[ann_id]
                 bbox = ann['bbox']
-                pose = inference_pose_model(pose_model, img_name, bbox)
+                pose = inference_pose_model(pose_model, image_name, bbox)
                 pose_results.append({
-                    'bbox': _xywh2xyxy(bbox),
-                    'keypoints': pose,
+                    'bbox':
+                    _xywh2xyxy(np.expand_dims(np.array(bbox), 0)),
+                    'keypoints':
+                    pose,
                 })
             # show the results
             show_result_pyplot(
-                pose_model, args.img, pose_results, score_thr=args.score_thr)
+                pose_model,
+                image_name,
+                pose_results,
+                skeleton=skeleton,
+                kpt_score_thr=args.kpt_thr)
 
 
 if __name__ == '__main__':
