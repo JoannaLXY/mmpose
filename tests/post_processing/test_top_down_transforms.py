@@ -34,7 +34,7 @@ def test_flip_back():
 def test_transform_preds():
     coords = np.random.random([2, 2])
     center = np.array([50, 50])
-    scale = np.array([100, 100])
+    scale = np.array([100 / 200., 100 / 200.])
     size = np.array([100, 100])
     ans = transform_preds(coords, center, scale, size)
     assert_array_almost_equal(coords, ans)
@@ -42,7 +42,7 @@ def test_transform_preds():
 
 def test_get_affine_transform():
     center = np.array([50, 50])
-    scale = np.array([100, 100])
+    scale = np.array([100 / 200., 100 / 200.])
     size = np.array([100, 100])
     ans = get_affine_transform(center, scale, 0, size)
     trans = np.array([[1, 0, 0], [0, 1, 0]])

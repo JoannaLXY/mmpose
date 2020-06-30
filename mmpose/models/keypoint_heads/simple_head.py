@@ -5,7 +5,7 @@ from mmcv.cnn import (build_conv_layer, build_upsample_layer, constant_init,
 from ..builder import HEADS
 
 
-@HEADS.register_module
+@HEADS.register_module()
 class SimpleHead(nn.Module):
     """Top-down model head of simplebaseline
     paper ref: Bin Xiao. ``Simple Baselines for Human

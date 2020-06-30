@@ -5,10 +5,10 @@ import numpy as np
 import torch
 import torch.distributed as dist
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import DistSamplerSeedHook, Runner, build_optimizer
+from mmcv.runner import DistSamplerSeedHook, OptimizerHook, Runner
 
-from mmpose.core import (DistEvalHook, DistOptimizerHook, EvalHook,
-                         Fp16OptimizerHook)
+from mmpose.core import (DistEvalHook, EvalHook, Fp16OptimizerHook,
+                         build_optimizer)
 from mmpose.datasets import build_dataloader, build_dataset
 from mmpose.utils import get_root_logger
 
@@ -32,24 +32,40 @@ def set_random_seed(seed, deterministic=False):
 
 
 def parse_losses(losses):
+    """Parse losses dict for different loss variants.
+
+    Args:
+        losses (dict): Loss dict.
+
+    Returns:
+        loss (float): Sum of the total loss.
+        log_vars (dict): Loss dict for different variants.
+    """
+
     log_vars = OrderedDict()
     for loss_name, loss_value in losses.items():
         if isinstance(loss_value, torch.Tensor):
             log_vars[loss_name] = loss_value.mean()
+        elif isinstance(loss_value, float):
+            log_vars[loss_name] = loss_value
         elif isinstance(loss_value, list):
             log_vars[loss_name] = sum(_loss.mean() for _loss in loss_value)
         else:
-            raise TypeError(f'{loss_name} is not a tensor or list of tensors')
+            raise TypeError(
+                f'{loss_name} is not a tensor or list of tensors or float')
 
     loss = sum(_value for _key, _value in log_vars.items() if 'loss' in _key)
 
     log_vars['loss'] = loss
     for loss_name, loss_value in log_vars.items():
         # reduce loss when distributed training
-        if dist.is_available() and dist.is_initialized():
-            loss_value = loss_value.data.clone()
-            dist.all_reduce(loss_value.div_(dist.get_world_size()))
-        log_vars[loss_name] = loss_value.item()
+        if not isinstance(loss_value, float):
+            if dist.is_available() and dist.is_initialized():
+                loss_value = loss_value.data.clone()
+                dist.all_reduce(loss_value.div_(dist.get_world_size()))
+            log_vars[loss_name] = loss_value.item()
+        else:
+            log_vars[loss_name] = loss_value
 
     return loss, log_vars
 
@@ -83,6 +99,19 @@ def train_model(model,
                 validate=False,
                 timestamp=None,
                 meta=None):
+    """train model entry function.
+
+    Args:
+        model (nn.Module): The model to be trained.
+        dataset (Dataset): Train dataset.
+        cfg (dict): The config dict for training.
+        distributed (bool): Whether to use distributed training.
+            Default: False.
+        validate (bool): Whether to do evaluation. Default: False.
+        timestamp (str | None): Local time for runner. Default: None.
+        meta (dict | None): Meta dict to record some important information.
+            Default: None
+    """
     logger = get_root_logger(cfg.log_level)
 
     # prepare data loaders
@@ -101,7 +130,7 @@ def train_model(model,
 
     # put model on gpus
     if distributed:
-        find_unused_parameters = cfg.get('find_unused_parameters', False)
+        find_unused_parameters = cfg.get('find_unused_parameters', True)
         # Sets the `find_unused_parameters` parameter in
         # torch.nn.parallel.DistributedDataParallel
         model = MMDistributedDataParallel(
@@ -131,7 +160,7 @@ def train_model(model,
         optimizer_config = Fp16OptimizerHook(
             **cfg.optimizer_config, **fp16_cfg, distributed=distributed)
     elif distributed and 'type' not in cfg.optimizer_config:
-        optimizer_config = DistOptimizerHook(**cfg.optimizer_config)
+        optimizer_config = OptimizerHook(**cfg.optimizer_config)
     else:
         optimizer_config = cfg.optimizer_config
 

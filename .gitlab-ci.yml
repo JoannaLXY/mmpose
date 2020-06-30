@@ -27,6 +27,7 @@ test:
   script:
     - echo "Start building..."
     - pip install pillow==6.2.2
+    - pip install scipy
     - pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
     - pip install -e .
     - python -c "import mmpose; print(mmpose.__version__)"

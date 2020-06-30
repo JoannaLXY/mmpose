@@ -97,8 +97,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
         self.num_images = len(self.image_set_index)
         self.db = self._get_db()
 
-        print('=> num_images: {}'.format(self.num_images))
-        print('=> load {} samples'.format(len(self.db)))
+        print(f'=> num_images: {self.num_images}')
+        print(f'=> load {len(self.db)} samples')
 
     def _get_db(self):
         if (not self.test_mode) or self.use_gt_bbox:
@@ -172,7 +172,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'joints_3d': joints_3d,
                 'joints_3d_visible': joints_3d_visible,
                 'dataset': 'coco',
-                'bbox_score': 1,
+                'bbox_score': 1
             })
 
         return rec
@@ -227,7 +227,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         if not all_boxes:
             raise ValueError('=> Load %s fail!' % self.bbox_file)
 
-        print('=> Total boxes: {}'.format(len(all_boxes)))
+        print(f'=> Total boxes: {len(all_boxes)}')
 
         kpt_db = []
         num_boxes = 0
@@ -257,10 +257,10 @@ class TopDownCocoDataset(TopDownBaseDataset):
                 'rotation': 0,
                 'imgnum': 0,
                 'joints_3d': joints_3d,
-                'joints_3d_visible': joints_3d_visible,
+                'joints_3d_visible': joints_3d_visible
             })
-        print('=> Total boxes after fliter low score@{}: {}'.format(
-            self.image_thr, num_boxes))
+        print(f'=> Total boxes after fliter '
+              f'low score@{self.image_thr}: {num_boxes}')
         return kpt_db
 
     def evaluate(self, outputs, res_folder, metrics='mAP', **kwargs):

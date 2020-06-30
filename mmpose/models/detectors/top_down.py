@@ -193,10 +193,9 @@ class TopDown(BasePose):
 
         all_preds[0, :, 0:2] = preds[:, :, 0:2]
         all_preds[0, :, 2:3] = maxvals
-        # double check this all_boxes parts
         all_boxes[0, 0:2] = c[:, 0:2]
         all_boxes[0, 2:4] = s[:, 0:2]
-        all_boxes[0, 4] = np.prod(s, 1)
+        all_boxes[0, 4] = np.prod(s * 200., 1)
         all_boxes[0, 5] = score
         image_path.extend(img_metas['image_file'])
 
