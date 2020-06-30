@@ -128,7 +128,7 @@ class HalfBodyTransform():
         elif w < aspect_ratio * h:
             w = h * aspect_ratio
 
-        scale = np.array([w * 1.0, h * 1.0], dtype=np.float32)
+        scale = np.array([w / 200., h / 200.], dtype=np.float32)
         scale = scale * 1.5
         return center, scale
 

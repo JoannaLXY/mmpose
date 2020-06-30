@@ -51,10 +51,10 @@ class BasePose(nn.Module):
                     skeleton=None,
                     kpt_score_thr=0.3,
                     bbox_color='green',
-                    pose_kpt_color='red',
+                    pose_kpt_color=(255, 0, 0),
                     pose_limb_color=None,
                     radius=4,
-                    text_color='green',
+                    text_color=(255, 0, 0),
                     thickness=1,
                     font_scale=0.5,
                     win_name='',
@@ -121,22 +121,22 @@ class BasePose(nn.Module):
                 if kpt_score > kpt_score_thr:
                     cv2.circle(img, (x_coord, y_coord), radius, pose_kpt_color,
                                thickness)
-                    cv2.putText(img, f'{id}', (x_coord, y_coord - 2),
+                    cv2.putText(img, f'{kid}', (x_coord, y_coord - 2),
                                 cv2.FONT_HERSHEY_COMPLEX, font_scale,
                                 text_color)
 
-                # draw limbs
-                if skeleton is not None:
-                    for sk in skeleton:
-                        pos1 = (int(kpt[sk[0] - 1, 0]), int(kpt[sk[0] - 1, 1]))
-                        pos2 = (int(kpt[sk[1] - 1, 0]), int(kpt[sk[1] - 1, 1]))
-                        if pos1[0] > 0 and pos1[0] < img_w \
-                                and pos1[1] > 0 and pos1[1] < img_h \
-                                and pos2[0] > 0 and pos2[0] < img_w \
-                                and pos2[1] > 0 and pos2[1] < img_h \
-                                and kpt[sk[0] - 1, 2] > kpt_score_thr \
-                                and kpt[sk[1] - 1, 2] > kpt_score_thr:
-                            cv2.line(img, pos1, pos2, pose_kpt_color, 2, 8)
+            # draw limbs
+            if skeleton is not None:
+                for sk in skeleton:
+                    pos1 = (int(kpts[sk[0] - 1, 0]), int(kpts[sk[0] - 1, 1]))
+                    pos2 = (int(kpts[sk[1] - 1, 0]), int(kpts[sk[1] - 1, 1]))
+                    if pos1[0] > 0 and pos1[0] < img_w \
+                            and pos1[1] > 0 and pos1[1] < img_h \
+                            and pos2[0] > 0 and pos2[0] < img_w \
+                            and pos2[1] > 0 and pos2[1] < img_h \
+                            and kpts[sk[0] - 1, 2] > kpt_score_thr \
+                            and kpts[sk[1] - 1, 2] > kpt_score_thr:
+                        cv2.line(img, pos1, pos2, pose_kpt_color, 2, 8)
 
         if show:
             imshow(img, win_name, wait_time)
