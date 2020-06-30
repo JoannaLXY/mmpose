@@ -4,7 +4,7 @@ import torch.nn as nn
 from ..builder import LOSSES
 
 
-@LOSSES.register_module
+@LOSSES.register_module()
 class JointsMSELoss(nn.Module):
     """MSE loss for heatmaps.
 
@@ -41,7 +41,7 @@ class JointsMSELoss(nn.Module):
         return loss / num_joints
 
 
-@LOSSES.register_module
+@LOSSES.register_module()
 class JointsOHKMMSELoss(nn.Module):
     """MSE loss with online hard keypoint mining.
 

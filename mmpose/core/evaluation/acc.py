@@ -5,7 +5,7 @@ from mmpose.core.post_processing import transform_preds
 
 
 def _calc_distances(preds, targets, normalize):
-    '''Calculate the normalized distances between preds and target.
+    """Calculate the normalized distances between preds and target.
 
     Note:
         batch_size: N
@@ -19,7 +19,7 @@ def _calc_distances(preds, targets, normalize):
     Returns:
         distances (np.ndarray[K, N]): The normalized distances.
         If target keypoints are missing, the distance is -1.
-    '''
+    """
     N, K, _ = preds.shape
     distances = np.full((K, N), -1, dtype=np.float32)
     eps = np.finfo(np.float32).eps
@@ -30,7 +30,7 @@ def _calc_distances(preds, targets, normalize):
 
 
 def _distance_acc(distances, thr=0.5):
-    '''Return the percentage below the distance threshold,
+    """Return the percentage below the distance threshold,
     while ignoring distances values with -1.
 
     Note:
@@ -42,7 +42,7 @@ def _distance_acc(distances, thr=0.5):
     Returns:
         Percentage of distances below the threshold.
         If all target keypoints are missing, return -1.
-    '''
+    """
     distance_valid = distances != -1
     num_distance_valid = distance_valid.sum()
     if num_distance_valid > 0:
@@ -51,7 +51,7 @@ def _distance_acc(distances, thr=0.5):
 
 
 def _get_max_preds(heatmaps):
-    '''Get keypoint predictions from score maps.
+    """Get keypoint predictions from score maps.
 
     Note:
         batch_size: N
@@ -65,7 +65,7 @@ def _get_max_preds(heatmaps):
     Returns:
         preds (np.ndarray[N, K, 2]): Predicted keypoint location.
         maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
-    '''
+    """
     assert isinstance(heatmaps, np.ndarray), \
         'heatmaps should be numpy.ndarray'
     assert heatmaps.ndim == 4, 'batch_images should be 4-ndim'
@@ -85,7 +85,7 @@ def _get_max_preds(heatmaps):
 
 
 def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
-    '''Calculate the pose accuracy according to PCK,
+    """Calculate the pose accuracy according to PCK,
     but uses ground truth heatmap rather than x,y locations
     First value to be returned is average accuracy across 'idxs',
     followed by individual accuracies
@@ -110,7 +110,7 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
         acc (np.ndarray[K]): Accuracy of each keypoint.
         avg_acc (float): Averaged accuracy across all keypoints.
         cnt (int): Number of valid keypoints.
-    '''
+    """
     N, K, H, W = output.shape
     if K == 0:
         return None, 0, 0

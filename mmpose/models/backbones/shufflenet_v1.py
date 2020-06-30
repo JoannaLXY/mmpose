@@ -35,9 +35,6 @@ class ShuffleUnit(nn.Module):
         with_cp (bool, optional): Use checkpoint or not. Using checkpoint
             will save some memory while slowing down the training speed.
             Default: False.
-
-    Returns:
-        Tensor: The output tensor.
     """
 
     def __init__(self,

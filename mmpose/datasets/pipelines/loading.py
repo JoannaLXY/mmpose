@@ -5,7 +5,7 @@ import mmcv
 from mmpose.datasets.builder import PIPELINES
 
 
-@PIPELINES.register_module
+@PIPELINES.register_module()
 class LoadImageFromFile(object):
     """Loading image from file.
 
