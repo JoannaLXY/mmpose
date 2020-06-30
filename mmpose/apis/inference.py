@@ -32,8 +32,9 @@ def init_pose_model(config, checkpoint=None, device='cuda:0'):
                         f'but got {type(config)}')
     config.model.pretrained = None
     model = build_posenet(config.model)
-    # load model checkpoint
-    load_checkpoint(model, checkpoint, map_location=device)
+    if checkpoint is not None:
+        # load model checkpoint
+        load_checkpoint(model, checkpoint, map_location=device)
     # save the config in the model for convenience
     model.cfg = config
     model.to(device)

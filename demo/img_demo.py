@@ -81,7 +81,7 @@ def main():
         assert args.det_checkpoint is not None
 
         det_model = init_detector(
-            args.det_config, args.det_checkpoint, device='cuda:0')
+            args.det_config, args.det_checkpoint, device=args.device)
         # build the pose model from a config file and a checkpoint file
         pose_model = init_pose_model(
             args.pose_config, args.pose_checkpoint, device=args.device)
@@ -107,7 +107,11 @@ def main():
 
         # show the results
         show_result_pyplot(
-            pose_model, image_name, pose_results, kpt_score_thr=args.kpt_thr)
+            pose_model,
+            image_name,
+            pose_results,
+            skeleton=skeleton,
+            kpt_score_thr=args.kpt_thr)
 
     else:
         from pycocotools.coco import COCO
