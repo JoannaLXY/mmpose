@@ -77,8 +77,8 @@ class TopDownMPIIDataset(TopDownBaseDataset):
                 joints[:, 0:2] = joints[:, 0:2] - 1
                 joints_vis = np.array(a['joints_vis'])
                 assert len(joints) == self.ann_info['num_joints'], \
-                    'joint num diff: {}'.format(len(joints)) + \
-                    ' vs {}'.format(self.ann_info['num_joints'])
+                    f'joint num diff: {len(joints)}' + \
+                    f' vs {self.ann_info["num_joints"]}'
 
                 joints_3d[:, 0:2] = joints[:, 0:2]
                 joints_3d_visible[:, 0] = joints_vis[:]
@@ -100,7 +100,7 @@ class TopDownMPIIDataset(TopDownBaseDataset):
                 'dataset':
                 'mpii',
                 'bbox_score':
-                1,
+                1
             })
 
         return gt_db
@@ -129,6 +129,9 @@ class TopDownMPIIDataset(TopDownBaseDataset):
         Returns:
             PCKh for each joint
         """
+
+        # only PCKh is supported.
+        assert metrics == 'PCKh'
 
         _preds = []
         for i in range(len(outputs)):

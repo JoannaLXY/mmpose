@@ -68,8 +68,8 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
         self.num_images = len(self.image_set_index)
         self.db = self._get_db()
 
-        print('=> num_images: {}'.format(self.num_images))
-        print('=> load {} samples'.format(len(self.db)))
+        print(f'=> num_images: {self.num_images}')
+        print(f'=> load {len(self.db)} samples')
 
     def _get_db(self):
         # use ground truth bbox
@@ -151,7 +151,7 @@ class TopDownTRBMPIDataset(TopDownBaseDataset):
                 'joints_3d': joints_3d,
                 'joints_3d_visible': joints_3d_visible,
                 'dataset': 'trb',
-                'bbox_score': 1,
+                'bbox_score': 1
             })
 
         return rec
