@@ -1,23 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from mmcv.cnn import (build_conv_layer, build_norm_layer, constant_init,
-                      normal_init)
-from mmcv.runner import load_checkpoint
-from torch.nn.modules.batchnorm import _BatchNorm
+import torch.utils.checkpoint as cp
+from mmcv.cnn import build_conv_layer, build_norm_layer
 
-from mmpose.utils import get_root_logger
 from ..builder import BACKBONES
-from .base_backbone import BaseBackbone
+from .resnet import Bottleneck, ResNet
 
 
 class SCConv(nn.Module):
     """SCConv for SCNet
 
     Args:
-        planes (int): number of input channels
-        stride (int): stride of SCConv
-        pooling_r (int): size of pooling
+        planes (int): number of input channels.
+        stride (int): stride of SCConv.
+        pooling_r (int): size of pooling for scconv.
         conv_cfg (dict): dictionary to construct and config conv layer.
             Default: None
         norm_cfg (dict): dictionary to construct and config norm layer.
@@ -79,7 +76,7 @@ class SCConv(nn.Module):
         return out
 
 
-class SCBottleneck(nn.Module):
+class SCBottleneck(Bottleneck):
     """SCBottleneck for SCNet
 
     Args:
@@ -87,91 +84,102 @@ class SCBottleneck(nn.Module):
                         conv2d layer.
         planes (int): Number of channels produced by some norm/conv2d
                         layers.
-        stride (int): Stride of SCConv.
-        downsample (int): Whether to downsample.
-        conv_cfg (dict): dictionary to construct and config conv layer.
-            Default: None
-        norm_cfg (dict): dictionary to construct and config norm layer.
-            Default: dict(type='BN')
     """
 
     expansion = 4
     pooling_r = 4
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN', momentum=0.1)):
-
-        super(SCBottleneck, self).__init__()
+    def __init__(self, inplanes, planes, **kwargs):
+        super(SCBottleneck, self).__init__(inplanes, planes, **kwargs)
         planes = int(planes / 2)
 
-        self.conv1_a = build_conv_layer(
-            conv_cfg, inplanes, planes, kernel_size=1, stride=1, bias=False)
-        self.bn1_a = build_norm_layer(norm_cfg, planes)[1]
+        self.norm1_name, norm1 = build_norm_layer(
+            self.norm_cfg, planes, postfix=1)
+        self.norm2_name, norm2 = build_norm_layer(
+            self.norm_cfg, planes, postfix=2)
+        self.norm3_name, norm3 = build_norm_layer(
+            self.norm_cfg, planes * 2 * self.expansion, postfix=3)
+
+        self.conv1 = build_conv_layer(
+            self.conv_cfg,
+            inplanes,
+            planes,
+            kernel_size=1,
+            stride=1,
+            bias=False)
+        self.add_module(self.norm1_name, norm1)
 
         self.k1 = nn.Sequential(
             build_conv_layer(
-                conv_cfg,
+                self.conv_cfg,
                 planes,
                 planes,
                 kernel_size=3,
-                stride=stride,
+                stride=self.stride,
                 padding=1,
                 bias=False),
-            build_norm_layer(norm_cfg, planes)[1], nn.ReLU(inplace=True))
+            build_norm_layer(self.norm_cfg, planes)[1], nn.ReLU(inplace=True))
 
-        self.conv1_b = build_conv_layer(
-            conv_cfg, inplanes, planes, kernel_size=1, stride=1, bias=False)
-        self.bn1_b = build_norm_layer(norm_cfg, planes)[1]
+        self.conv2 = build_conv_layer(
+            self.conv_cfg,
+            inplanes,
+            planes,
+            kernel_size=1,
+            stride=1,
+            bias=False)
+        self.add_module(self.norm2_name, norm2)
 
-        self.scconv = SCConv(planes, stride, self.pooling_r, conv_cfg,
-                             norm_cfg)
+        self.scconv = SCConv(planes, self.stride, self.pooling_r,
+                             self.conv_cfg, self.norm_cfg)
 
         self.conv3 = build_conv_layer(
-            conv_cfg,
+            self.conv_cfg,
             planes * 2,
             planes * 2 * self.expansion,
             kernel_size=1,
             stride=1,
             bias=False)
-        self.bn3 = build_norm_layer(norm_cfg, planes * 2 * self.expansion)[1]
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
+        self.add_module(self.norm3_name, norm3)
 
     def forward(self, x):
-        residual = x
 
-        out_a = self.conv1_a(x)
-        out_a = self.bn1_a(out_a)
-        out_a = self.relu(out_a)
+        def _inner_forward(x):
+            identity = x
 
-        out_a = self.k1(out_a)
+            out_a = self.conv1(x)
+            out_a = self.norm1(out_a)
+            out_a = self.relu(out_a)
 
-        out_b = self.conv1_b(x)
-        out_b = self.bn1_b(out_b)
-        out_b = self.relu(out_b)
+            out_a = self.k1(out_a)
 
-        out_b = self.scconv(out_b)
+            out_b = self.conv2(x)
+            out_b = self.norm2(out_b)
+            out_b = self.relu(out_b)
 
-        out = self.conv3(torch.cat([out_a, out_b], dim=1))
-        out = self.bn3(out)
+            out_b = self.scconv(out_b)
 
-        if self.downsample is not None:
-            residual = self.downsample(x)
+            out = self.conv3(torch.cat([out_a, out_b], dim=1))
+            out = self.norm3(out)
 
-        out += residual
+            if self.downsample is not None:
+                identity = self.downsample(x)
+
+            out += identity
+
+            return out
+
+        if self.with_cp and x.requires_grad:
+            out = cp.checkpoint(_inner_forward, x)
+        else:
+            out = _inner_forward(x)
+
         out = self.relu(out)
 
         return out
 
 
 @BACKBONES.register_module()
-class SCNet(BaseBackbone):
+class SCNet(ResNet):
     """SCNet backbone.
 
     Improving Convolutional Networks with Self-Calibrated Convolutions,
@@ -180,8 +188,43 @@ class SCNet(BaseBackbone):
     http://mftp.mmcheng.net/Papers/20cvprSCNet.pdf
 
     Args:
-        depth (int): depth of SCNet
-        in_channels (int): number of input channels
+        depth (int): Depth of scnet, from {50, 101}.
+        in_channels (int): Number of input image channels. Normally 3.
+        base_channels (int): Number of base channels of hidden layer.
+        num_stages (int): SCNet stages, normally 4.
+        strides (Sequence[int]): Strides of the first block of each stage.
+        dilations (Sequence[int]): Dilation of each stage.
+        out_indices (Sequence[int]): Output from which stages.
+        style (str): `pytorch` or `caffe`. If set to "pytorch", the stride-two
+            layer is the 3x3 conv layer, otherwise the stride-two layer is
+            the first 1x1 conv layer.
+        deep_stem (bool): Replace 7x7 conv in input stem with 3 3x3 conv
+        avg_down (bool): Use AvgPool instead of stride conv when
+            downsampling in the bottleneck.
+        frozen_stages (int): Stages to be frozen (stop grad and set eval mode).
+            -1 means not freezing any parameters.
+        norm_cfg (dict): Dictionary to construct and config norm layer.
+        norm_eval (bool): Whether to set norm layers to eval mode, namely,
+            freeze running stats (mean and var). Note: Effect on Batch Norm
+            and its variants only.
+        with_cp (bool): Use checkpoint or not. Using checkpoint will save some
+            memory while slowing down the training speed.
+        zero_init_residual (bool): Whether to use zero init for last norm layer
+            in resblocks to let them behave as identity.
+
+    Example:
+        >>> from mmpose.models import SCNet
+        >>> import torch
+        >>> self = SCNet(depth=50)
+        >>> self.eval()
+        >>> inputs = torch.rand(1, 3, 224, 224)
+        >>> level_outputs = self.forward(inputs)
+        >>> for level_out in level_outputs:
+        ...     print(tuple(level_out.shape))
+        (1, 64, 56, 56)
+        (1, 128, 28, 28)
+        (1, 256, 14, 14)
+        (1, 512, 7, 7)
     """
 
     arch_settings = {
@@ -189,80 +232,7 @@ class SCNet(BaseBackbone):
         101: (SCBottleneck, [3, 4, 23, 3])
     }
 
-    def __init__(self,
-                 depth,
-                 in_channels=3,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN')):
-
-        super(SCNet, self).__init__()
-
-        self.norm_cfg = norm_cfg
-        self.conv_cfg = conv_cfg
-
-        block, layers = self.arch_settings[depth]
-        self.inplanes = 64
-        self.conv1 = nn.Conv2d(
-            in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.bn1 = build_norm_layer(norm_cfg, self.inplanes)[1]
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-
-    def _make_layer(self, block, planes, blocks, stride=1):
-        downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                build_conv_layer(
-                    self.conv_cfg,
-                    self.inplanes,
-                    planes * block.expansion,
-                    kernel_size=1,
-                    stride=stride,
-                    bias=False),
-                build_norm_layer(self.norm_cfg, planes * block.expansion)[1])
-
-        layers = []
-        layers.append(
-            block(self.inplanes, planes, stride, downsample, self.conv_cfg,
-                  self.norm_cfg))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(
-                block(
-                    self.inplanes,
-                    planes,
-                    conv_cfg=self.conv_cfg,
-                    norm_cfg=self.norm_cfg))
-
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        return x
-
-    def init_weights(self, pretrained=None):
-        if isinstance(pretrained, str):
-            logger = get_root_logger()
-            load_checkpoint(self, pretrained, strict=False, logger=logger)
-
-        elif pretrained is None:
-            for m in self.modules():
-                if isinstance(m, nn.Conv2d):
-                    normal_init(m, std=0.001)
-                elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
-                    constant_init(m, 1)
-        else:
-            raise TypeError('pretrained must be a str or None')
+    def __init__(self, depth, **kwargs):
+        if depth not in self.arch_settings:
+            raise KeyError(f'invalid depth {depth} for SCNet')
+        super(SCNet, self).__init__(depth, **kwargs)
