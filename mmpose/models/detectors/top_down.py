@@ -142,9 +142,7 @@ class TopDown(BasePose):
         assert img.size(0) == 1
         assert len(img_metas) == 1
 
-        # TODO: how to deal with DC?
-        # img_metas = img_metas[0]
-        img_metas = img_metas.data[0][0]
+        img_metas = img_metas[0]
 
         flip_pairs = img_metas['flip_pairs']
         # compute output

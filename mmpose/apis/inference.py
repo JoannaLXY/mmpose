@@ -42,7 +42,40 @@ def init_pose_model(config, checkpoint=None, device='cuda:0'):
     return model
 
 
-def box2cs(cfg, box):
+def _xyxy2xywh(bbox_xyxy):
+    """transform the bbox format from x1y1x2y2 to xywh.
+
+    Args:
+        bbox_xyxy (ndarray): Bounding boxes (with scores), shaped (n, 4) or
+            (n, 5). (left, top, right, bottom, [score])
+
+    Returns:
+        bbox_xywh (ndarray): Bounding boxes (with scores),
+            shaped (n, 4) or (n, 5). (left, top, width, height, [score])
+    """
+    bbox_xywh = bbox_xyxy.copy()
+    bbox_xywh[:, 2] = bbox_xywh[:, 2] - bbox_xywh[:, 0] + 1
+    bbox_xywh[:, 3] = bbox_xywh[:, 3] - bbox_xywh[:, 1] + 1
+    return bbox_xywh
+
+
+def _xywh2xyxy(bbox_xywh):
+    """transform the bbox format from xywh to x1y1x2y2.
+
+    Args:
+        bbox_xywh (ndarray): Bounding boxes (with scores),
+            shaped (n, 4) or (n, 5). (left, top, width, height, [score])
+    Returns:
+        bbox (ndarray): Bounding boxes (with scores), shaped (n, 4) or
+            (n, 5). (left, top, right, bottom, [score])
+    """
+    bbox_xyxy = bbox_xywh.copy()
+    bbox_xyxy[:, 2] = bbox_xyxy[:, 2] + bbox_xyxy[:, 0] - 1
+    bbox_xyxy[:, 3] = bbox_xyxy[:, 3] + bbox_xyxy[:, 1] - 1
+    return bbox_xyxy
+
+
+def _box2cs(cfg, box):
     """This encodes bbox(x,y,w,h) into (center, scale)
 
     Args:
@@ -71,15 +104,14 @@ def box2cs(cfg, box):
     return center, scale
 
 
-def inference_pose_model(model, img, bbox):
-    """Inference image(s) with the pose model.
+def _inference_single_pose_model(model, image_name, bbox):
+    """Inference a single bbox.
 
     num_keypoints: K
 
     Args:
         model (nn.Module): The loaded pose model.
-        imgs (str/ndarray or list[str/ndarray]): Either image files or loaded
-            images.
+        image_name (str/ndarray):Image_name
         bbox (list|ndarray): Bounding boxes (with scores),
             shaped (4, ) or (5, ). (left, top, width, height, [score])
 
@@ -87,14 +119,14 @@ def inference_pose_model(model, img, bbox):
         predicted poses (ndarray[Kx3]): x, y, score
     """
     cfg = model.cfg
-    device = next(model.parameters()).device  # model device
+    device = next(model.parameters()).device
     # build the data pipeline
     test_pipeline = Compose(cfg.valid_pipeline)
 
-    center, scale = box2cs(cfg, bbox)
+    center, scale = _box2cs(cfg, bbox)
     # prepare data
     data = {
-        'image_file': img,
+        'image_file': image_name,
         'center': center,
         'scale': scale,
         'bbox_score': bbox[4] if len(bbox) == 5 else 1,
@@ -121,9 +153,62 @@ def inference_pose_model(model, img, bbox):
 
     # forward the model
     with torch.no_grad():
-        all_preds, _, _ = model(return_loss=False, rescale=True, **data)
+        all_preds, _, _ = model(
+            return_loss=False,
+            img=data['img'],
+            img_metas=data['img_metas'].data[0])
 
     return all_preds[0]
+
+
+def inference_multi_pose_model(model,
+                               image_name,
+                               person_bboxes,
+                               bbox_thr=None,
+                               format='xywh'):
+    """Inference a single image with a list of person bounding boxes.
+
+    num_people: P
+    num_keypoints: K
+    bbox height: H
+    bbox width: W
+
+    Args:
+        model (nn.Module): The loaded pose model.
+        image_name (str/ndarray): Image_name
+        person_bboxes: (ndarray[P x 4] or [P x 5]): Each person bounding box
+            shaped (4, ) or (5, ), contains 4 box coordinates (and score).
+        bbox_thr: Threshold for bounding boxes. Only bboxes with higher scores
+            will be fed into the pose detector. If bbox_thr is None, ignore it.
+        format: bbox format ('xyxy' | 'xywh'). Default: 'xywh'.
+            'xyxy' means (left, top, right, bottom),
+            'xywh' means (left, top, width, height).
+
+    Returns:
+        pose_results (list[dict]): Each item in the list is a dictionary,
+            containing the bbox: (left, top, right, bottom, [score])
+            and the pose (ndarray[Kx3]): x, y, score
+    """
+    # only two kinds of bbox format is supported.
+    assert format in ['xyxy', 'xywh']
+    # transform the bboxes format to xywh
+    if format == 'xyxy':
+        person_bboxes = _xyxy2xywh(np.array(person_bboxes))
+    pose_results = []
+
+    if len(person_bboxes) > 0:
+        if bbox_thr is not None:
+            person_bboxes = person_bboxes[person_bboxes[:, 4] > bbox_thr]
+        for bbox in person_bboxes:
+            pose = _inference_single_pose_model(model, image_name, bbox)
+            pose_results.append({
+                'bbox':
+                _xywh2xyxy(np.expand_dims(np.array(bbox), 0)),
+                'keypoints':
+                pose,
+            })
+
+    return pose_results
 
 
 def show_result_pyplot(model,
