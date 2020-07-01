@@ -9,7 +9,7 @@ from .resnet import Bottleneck, ResNet
 
 
 class SCConv(nn.Module):
-    """SCConv for SCNet
+    """SCConv (Self-calibrated Convolution)
 
     Args:
         planes (int): number of input channels.
@@ -77,7 +77,7 @@ class SCConv(nn.Module):
 
 
 class SCBottleneck(Bottleneck):
-    """SCBottleneck for SCNet
+    """SC(Self-calibrated) Bottleneck
 
     Args:
         inplanes (int): Number of channels for the input in first
