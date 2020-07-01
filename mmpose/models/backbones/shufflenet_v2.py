@@ -246,16 +246,15 @@ class ShuffleNetV2(BaseBackbone):
                 param.requires_grad = False
 
     def init_weights(self, pretrained=None):
-        super(ShuffleNetV2, self).init_weights(pretrained)
         if pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
                     kaiming_init(m)
                 elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
                     constant_init(m, 1)
-        # else:
-        #     raise TypeError('pretrained must be a str or None. But received '
-        #                     f'{type(pretrained)}')
+        else:
+            raise TypeError('pretrained must be a str or None. But received '
+                            f'{type(pretrained)}')
 
     def forward(self, x):
         x = self.conv1(x)
