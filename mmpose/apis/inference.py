@@ -161,11 +161,11 @@ def _inference_single_pose_model(model, image_name, bbox):
     return all_preds[0]
 
 
-def inference_multi_pose_model(model,
-                               image_name,
-                               person_bboxes,
-                               bbox_thr=None,
-                               format='xywh'):
+def inference_pose_model(model,
+                         image_name,
+                         person_bboxes,
+                         bbox_thr=None,
+                         format='xywh'):
     """Inference a single image with a list of person bounding boxes.
 
     num_people: P
@@ -239,13 +239,13 @@ def show_result_pyplot(model,
     plt.show()
 
 
-def save_result_visualization(model,
-                              img,
-                              result,
-                              out_file=None,
-                              kpt_score_thr=0.3,
-                              skeleton=None):
-    """Visualize the detection results on the image.
+def save_result_vis(model,
+                    img,
+                    result,
+                    out_file=None,
+                    kpt_score_thr=0.3,
+                    skeleton=None):
+    """Visualize the detection results on the image and save the img file.
 
     Args:
         model (nn.Module): The loaded detector.

@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 from mmdet.apis import inference_detector, init_detector
 
-from mmpose.apis import (inference_multi_pose_model, init_pose_model,
+from mmpose.apis import (inference_pose_model, init_pose_model,
                          show_result_pyplot)
 
 
@@ -53,7 +53,7 @@ def main():
     person_bboxes = det_results[0][0].copy()
 
     # test a single image, with a list of bboxes.
-    pose_results = inference_multi_pose_model(
+    pose_results = inference_pose_model(
         pose_model,
         image_name,
         person_bboxes,
