@@ -313,6 +313,8 @@ class ResLayer(nn.Sequential):
             Default: None
         norm_cfg (dict): dictionary to construct and config norm layer.
             Default: dict(type='BN')
+        downsample_first (bool): Downsample at the first block or last block.
+            False for Hourglass, True for ResNet. Default: True
     """
 
     def __init__(self,
@@ -325,6 +327,7 @@ class ResLayer(nn.Sequential):
                  avg_down=False,
                  conv_cfg=None,
                  norm_cfg=dict(type='BN'),
+                 downsample_first=True,
                  **kwargs):
         self.block = block
         self.expansion = get_expansion(block, expansion)
@@ -354,27 +357,50 @@ class ResLayer(nn.Sequential):
             downsample = nn.Sequential(*downsample)
 
         layers = []
-        layers.append(
-            block(
-                in_channels=in_channels,
-                out_channels=out_channels,
-                expansion=self.expansion,
-                stride=stride,
-                downsample=downsample,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                **kwargs))
-        in_channels = out_channels
-        for i in range(1, num_blocks):
+        if downsample_first:
             layers.append(
                 block(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     expansion=self.expansion,
-                    stride=1,
+                    stride=stride,
+                    downsample=downsample,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
                     **kwargs))
+            in_channels = out_channels
+            for i in range(1, num_blocks):
+                layers.append(
+                    block(
+                        in_channels=in_channels,
+                        out_channels=out_channels,
+                        expansion=self.expansion,
+                        stride=1,
+                        conv_cfg=conv_cfg,
+                        norm_cfg=norm_cfg,
+                        **kwargs))
+        else:  # downsample_first=False is for HourglassModule
+            for i in range(0, num_blocks - 1):
+                layers.append(
+                    block(
+                        in_channels=in_channels,
+                        out_channels=in_channels,
+                        expansion=self.expansion,
+                        stride=1,
+                        conv_cfg=conv_cfg,
+                        norm_cfg=norm_cfg,
+                        **kwargs))
+            layers.append(
+                block(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    expansion=self.expansion,
+                    stride=stride,
+                    downsample=downsample,
+                    conv_cfg=conv_cfg,
+                    norm_cfg=norm_cfg,
+                    **kwargs))
+
         super(ResLayer, self).__init__(*layers)
 
 
