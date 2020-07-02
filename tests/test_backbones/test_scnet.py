@@ -52,7 +52,7 @@ def test_scnet_scconv():
 
 def test_scnet_bottleneck():
     # Test Bottleneck forward
-    block = SCBottleneck(64, 16)
+    block = SCBottleneck(64, 64)
     x = torch.randn(1, 64, 56, 56)
     x_out = block(x)
     assert x_out.shape == torch.Size([1, 64, 56, 56])

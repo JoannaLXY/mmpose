@@ -12,7 +12,8 @@ class SCConv(nn.Module):
     """SCConv (Self-calibrated Convolution)
 
     Args:
-        planes (int): number of input channels.
+        in_channels (int): The input channels of the SCConv.
+        out_channels (int): The output channel of the SCConv.
         stride (int): stride of SCConv.
         pooling_r (int): size of pooling for scconv.
         conv_cfg (dict): dictionary to construct and config conv layer.
@@ -22,45 +23,49 @@ class SCConv(nn.Module):
     """
 
     def __init__(self,
-                 planes,
+                 in_channels,
+                 out_channels,
                  stride,
                  pooling_r,
                  conv_cfg=None,
                  norm_cfg=dict(type='BN', momentum=0.1)):
         super(SCConv, self).__init__()
+
+        assert in_channels == out_channels
+
         self.k2 = nn.Sequential(
             nn.AvgPool2d(kernel_size=pooling_r, stride=pooling_r),
             build_conv_layer(
                 conv_cfg,
-                planes,
-                planes,
+                in_channels,
+                in_channels,
                 kernel_size=3,
                 stride=1,
                 padding=1,
                 bias=False),
-            build_norm_layer(norm_cfg, planes)[1],
+            build_norm_layer(norm_cfg, in_channels)[1],
         )
         self.k3 = nn.Sequential(
             build_conv_layer(
                 conv_cfg,
-                planes,
-                planes,
+                in_channels,
+                in_channels,
                 kernel_size=3,
                 stride=1,
                 padding=1,
                 bias=False),
-            build_norm_layer(norm_cfg, planes)[1],
+            build_norm_layer(norm_cfg, in_channels)[1],
         )
         self.k4 = nn.Sequential(
             build_conv_layer(
                 conv_cfg,
-                planes,
-                planes,
+                in_channels,
+                in_channels,
                 kernel_size=3,
                 stride=stride,
                 padding=1,
                 bias=False),
-            build_norm_layer(norm_cfg, planes)[1],
+            build_norm_layer(norm_cfg, out_channels)[1],
             nn.ReLU(inplace=True),
         )
 
@@ -80,30 +85,26 @@ class SCBottleneck(Bottleneck):
     """SC(Self-calibrated) Bottleneck
 
     Args:
-        inplanes (int): Number of channels for the input in first
-                        conv2d layer.
-        planes (int): Number of channels produced by some norm/conv2d
-                        layers.
+        in_channels (int): The input channels of the SCBottleneck block.
+        out_channels (int): The output channel of the SCBottleneck block.
     """
-
-    expansion = 4
     pooling_r = 4
 
-    def __init__(self, inplanes, planes, **kwargs):
-        super(SCBottleneck, self).__init__(inplanes, planes, **kwargs)
-        planes = int(planes / 2)
+    def __init__(self, in_channels, out_channels, **kwargs):
+        super(SCBottleneck, self).__init__(in_channels, out_channels, **kwargs)
+        self.mid_channels = out_channels // self.expansion // 2
 
         self.norm1_name, norm1 = build_norm_layer(
-            self.norm_cfg, planes, postfix=1)
+            self.norm_cfg, self.mid_channels, postfix=1)
         self.norm2_name, norm2 = build_norm_layer(
-            self.norm_cfg, planes, postfix=2)
+            self.norm_cfg, self.mid_channels, postfix=2)
         self.norm3_name, norm3 = build_norm_layer(
-            self.norm_cfg, planes * 2 * self.expansion, postfix=3)
+            self.norm_cfg, out_channels, postfix=3)
 
         self.conv1 = build_conv_layer(
             self.conv_cfg,
-            inplanes,
-            planes,
+            in_channels,
+            self.mid_channels,
             kernel_size=1,
             stride=1,
             bias=False)
@@ -112,30 +113,31 @@ class SCBottleneck(Bottleneck):
         self.k1 = nn.Sequential(
             build_conv_layer(
                 self.conv_cfg,
-                planes,
-                planes,
+                self.mid_channels,
+                self.mid_channels,
                 kernel_size=3,
                 stride=self.stride,
                 padding=1,
                 bias=False),
-            build_norm_layer(self.norm_cfg, planes)[1], nn.ReLU(inplace=True))
+            build_norm_layer(self.norm_cfg, self.mid_channels)[1],
+            nn.ReLU(inplace=True))
 
         self.conv2 = build_conv_layer(
             self.conv_cfg,
-            inplanes,
-            planes,
+            in_channels,
+            self.mid_channels,
             kernel_size=1,
             stride=1,
             bias=False)
         self.add_module(self.norm2_name, norm2)
 
-        self.scconv = SCConv(planes, self.stride, self.pooling_r,
-                             self.conv_cfg, self.norm_cfg)
+        self.scconv = SCConv(self.mid_channels, self.mid_channels, self.stride,
+                             self.pooling_r, self.conv_cfg, self.norm_cfg)
 
         self.conv3 = build_conv_layer(
             self.conv_cfg,
-            planes * 2,
-            planes * 2 * self.expansion,
+            self.mid_channels * 2,
+            out_channels,
             kernel_size=1,
             stride=1,
             bias=False)
