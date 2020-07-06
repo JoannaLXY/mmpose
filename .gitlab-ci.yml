@@ -17,7 +17,7 @@ before_script:
 linting:
   stage: linting
   script:
-    - pip install flake8 yapf isort
+    - pip install flake8 yapf isort==4.3.21
     - flake8 .
     - isort -rc --check-only --diff mmpose/ tools/ tests/
     - yapf -r -d mmpose/ tools/ tests/ configs/
