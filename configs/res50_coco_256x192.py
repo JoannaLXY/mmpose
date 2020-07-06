@@ -39,8 +39,8 @@ channel_cfg = dict(
 # model settings
 model = dict(
     type='TopDown',
-    pretrained='slurm_test/resnet50-19c8e357.pth',
-    # pretrained=None,
+    # pretrained='slurm_test/resnet50-19c8e357.pth',
+    pretrained=None,
     backbone=dict(type='ResNet', depth=50),
     keypoint_head=dict(
         type='SimpleHead',

@@ -4,7 +4,7 @@ from .test import multi_gpu_test, single_gpu_test
 from .train import set_random_seed, train_model
 
 __all__ = [
-    'set_random_seed', 'train_model', 'init_pose_model',
+    'train_model', 'set_random_seed', 'init_pose_model',
     'inference_pose_model', 'multi_gpu_test', 'single_gpu_test',
     'show_pose_result', 'save_pose_vis'
 ]

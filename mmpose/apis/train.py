@@ -1,14 +1,12 @@
 import random
-from collections import OrderedDict
 
 import numpy as np
 import torch
-import torch.distributed as dist
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import DistSamplerSeedHook, OptimizerHook, Runner
-
-from mmpose.core import (DistEvalHook, EvalHook, Fp16OptimizerHook,
+from mmcv.runner import (DistSamplerSeedHook, EpochBasedRunner, OptimizerHook,
                          build_optimizer)
+
+from mmpose.core import DistEvalHook, EvalHook, Fp16OptimizerHook
 from mmpose.datasets import build_dataloader, build_dataset
 from mmpose.utils import get_root_logger
 
@@ -22,6 +20,7 @@ def set_random_seed(seed, deterministic=False):
             to True and `torch.backends.cudnn.benchmark` to False.
             Default: False.
     """
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -31,67 +30,6 @@ def set_random_seed(seed, deterministic=False):
         torch.backends.cudnn.benchmark = False
 
 
-def parse_losses(losses):
-    """Parse losses dict for different loss variants.
-
-    Args:
-        losses (dict): Loss dict.
-
-    Returns:
-        loss (float): Sum of the total loss.
-        log_vars (dict): Loss dict for different variants.
-    """
-
-    log_vars = OrderedDict()
-    for loss_name, loss_value in losses.items():
-        if isinstance(loss_value, torch.Tensor):
-            log_vars[loss_name] = loss_value.mean()
-        elif isinstance(loss_value, float):
-            log_vars[loss_name] = loss_value
-        elif isinstance(loss_value, list):
-            log_vars[loss_name] = sum(_loss.mean() for _loss in loss_value)
-        else:
-            raise TypeError(
-                f'{loss_name} is not a tensor or list of tensors or float')
-
-    loss = sum(_value for _key, _value in log_vars.items() if 'loss' in _key)
-
-    log_vars['loss'] = loss
-    for loss_name, loss_value in log_vars.items():
-        # reduce loss when distributed training
-        if not isinstance(loss_value, float):
-            if dist.is_available() and dist.is_initialized():
-                loss_value = loss_value.data.clone()
-                dist.all_reduce(loss_value.div_(dist.get_world_size()))
-            log_vars[loss_name] = loss_value.item()
-        else:
-            log_vars[loss_name] = loss_value
-
-    return loss, log_vars
-
-
-def batch_processor(model, data, train_mode):
-    """Process a data batch.
-    This method is required as an argument of Runner, which defines how to
-    process a data batch and obtain proper outputs. The first 3 arguments of
-    batch_processor are fixed.
-    Args:
-        model (nn.Module): A PyTorch model.
-        data (dict): The data batch in a dict.
-        train_mode (bool): Training mode or not. It may be useless for some
-            models.
-    Returns:
-        dict: A dict containing losses and log vars.
-    """
-    losses = model(**data)
-    loss, log_vars = parse_losses(losses)
-
-    outputs = dict(
-        loss=loss, log_vars=log_vars, num_samples=len(data['img'].data))
-
-    return outputs
-
-
 def train_model(model,
                 dataset,
                 cfg,
@@ -99,7 +37,7 @@ def train_model(model,
                 validate=False,
                 timestamp=None,
                 meta=None):
-    """train model entry function.
+    """Train model entry function.
 
     Args:
         model (nn.Module): The model to be trained.
@@ -116,16 +54,18 @@ def train_model(model,
 
     # prepare data loaders
     dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
+    dataloader_setting = dict(
+        samples_per_gpu=cfg.data.get('samples_per_gpu', {}),
+        workers_per_gpu=cfg.data.get('workers_per_gpu', {}),
+        # cfg.gpus will be ignored if distributed
+        num_gpus=len(cfg.gpu_ids),
+        dist=distributed,
+        seed=cfg.seed)
+    dataloader_setting = dict(dataloader_setting,
+                              **cfg.data.get('train_dataloader', {}))
 
     data_loaders = [
-        build_dataloader(
-            ds,
-            cfg.data.samples_per_gpu,
-            cfg.data.workers_per_gpu,
-            # cfg.gpus will be ignored if distributed
-            len(cfg.gpu_ids),
-            dist=distributed,
-            seed=cfg.seed) for ds in dataset
+        build_dataloader(ds, **dataloader_setting) for ds in dataset
     ]
 
     # put model on gpus
@@ -144,14 +84,13 @@ def train_model(model,
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
-    runner = Runner(
+    runner = EpochBasedRunner(
         model,
-        batch_processor,
-        optimizer,
-        cfg.work_dir,
+        optimizer=optimizer,
+        work_dir=cfg.work_dir,
         logger=logger,
         meta=meta)
-    # an ugly walkaround to make the .log and .log.json filenames the same
+    # an ugly workaround to make .log and .log.json filenames the same
     runner.timestamp = timestamp
 
     # fp16 setting
@@ -173,14 +112,19 @@ def train_model(model,
 
     # register eval hooks
     if validate:
+        eval_cfg = cfg.get('evaluation', {})
         val_dataset = build_dataset(cfg.data.val, dict(test_mode=True))
-        val_dataloader = build_dataloader(
-            val_dataset,
+        dataloader_setting = dict(
+            # samples_per_gpu=cfg.data.get('samples_per_gpu', {}),
             samples_per_gpu=1,
-            workers_per_gpu=cfg.data.workers_per_gpu,
+            workers_per_gpu=cfg.data.get('workers_per_gpu', {}),
+            # cfg.gpus will be ignored if distributed
+            num_gpus=len(cfg.gpu_ids),
             dist=distributed,
             shuffle=False)
-        eval_cfg = cfg.get('evaluation', {})
+        dataloader_setting = dict(dataloader_setting,
+                                  **cfg.data.get('val_dataloader', {}))
+        val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
         eval_hook = DistEvalHook if distributed else EvalHook
         runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
 

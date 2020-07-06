@@ -1,5 +1,3 @@
-# import os.path as osp
-# import numpy as np
 import mmcv
 
 from mmpose.datasets.builder import PIPELINES

@@ -23,6 +23,16 @@ PIPELINES = Registry('pipeline')
 
 
 def build_dataset(cfg, default_args=None):
+    """Build a dataset from config dict.
+
+    Args:
+        cfg (dict): Config dict. It should at least contain the key "type".
+        default_args (dict, optional): Default initialization arguments.
+            Default: None.
+
+    Returns:
+        Dataset: The constructed dataset.
+    """
     from .dataset_wrappers import ConcatDataset, RepeatDataset
     if isinstance(cfg, (list, tuple)):
         dataset = ConcatDataset([build_dataset(c, default_args) for c in cfg])
@@ -97,6 +107,7 @@ def build_dataloader(dataset,
 
 
 def worker_init_fn(worker_id, num_workers, rank, seed):
+    """Init the random seed for various workers."""
     # The seed of each worker equals to
     # num_worker * rank + worker_id + user_seed
     worker_seed = num_workers * rank + worker_id + seed
