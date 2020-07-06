@@ -44,7 +44,7 @@ def check_norm_state(modules, train_state):
 
 def test_scnet_scconv():
     # Test scconv forward
-    layer = SCConv(64, 1, 4)
+    layer = SCConv(64, 64, 1, 4)
     x = torch.randn(1, 64, 56, 56)
     x_out = layer(x)
     assert x_out.shape == torch.Size([1, 64, 56, 56])
