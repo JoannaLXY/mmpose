@@ -11,19 +11,8 @@ from .seresnext import SEResNeXt
 from .shufflenet_v1 import ShuffleNetV1
 from .shufflenet_v2 import ShuffleNetV2
 
-
 __all__ = [
-    'HourglassNet',
-    'HRNet',
-    'MobileNetV2',
-    'MobileNetV3',
-    'RegNet',
-    'ResNet',
-    'ResNetV1d',
-    'ResNeXt',
-    'SCNet',
-    'SEResNet',
-    'SEResNeXt',
-    'ShuffleNetV1',
+    'HourglassNet', 'HRNet', 'MobileNetV2', 'MobileNetV3', 'RegNet', 'ResNet',
+    'ResNetV1d', 'ResNeXt', 'SCNet', 'SEResNet', 'SEResNeXt', 'ShuffleNetV1',
     'ShuffleNetV2'
 ]
