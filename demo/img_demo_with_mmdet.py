@@ -3,14 +3,11 @@ from argparse import ArgumentParser
 
 from mmdet.apis import inference_detector, init_detector
 
-from mmpose.apis import (inference_pose_model, init_pose_model,
-                         show_result_pyplot)
+from mmpose.apis import inference_pose_model, init_pose_model, show_pose_result
 
 
 def main():
-    """Visualize the demo images.
-
-    If json_file is given,
+    """Visualize the demo images. Using mmdet to detect the human.
 
     """
     parser = ArgumentParser()
@@ -61,7 +58,7 @@ def main():
         format='xyxy')
 
     # show the results
-    show_result_pyplot(
+    show_pose_result(
         pose_model,
         image_name,
         pose_results,

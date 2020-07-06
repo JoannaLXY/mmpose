@@ -211,12 +211,12 @@ def inference_pose_model(model,
     return pose_results
 
 
-def show_result_pyplot(model,
-                       img,
-                       result,
-                       kpt_score_thr=0.3,
-                       skeleton=None,
-                       fig_size=(15, 10)):
+def show_pose_result(model,
+                     img,
+                     result,
+                     kpt_score_thr=0.3,
+                     skeleton=None,
+                     fig_size=(15, 10)):
     """Visualize the detection results on the image.
 
     Args:
@@ -239,12 +239,12 @@ def show_result_pyplot(model,
     plt.show()
 
 
-def save_result_vis(model,
-                    img,
-                    result,
-                    out_file=None,
-                    kpt_score_thr=0.3,
-                    skeleton=None):
+def save_pose_vis(model,
+                  img,
+                  result,
+                  out_file=None,
+                  kpt_score_thr=0.3,
+                  skeleton=None):
     """Visualize the detection results on the image and save the img file.
 
     Args:

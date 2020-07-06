@@ -3,12 +3,12 @@ from argparse import ArgumentParser
 
 from tqdm import tqdm
 
-from mmpose.apis import (inference_pose_model, init_pose_model,
-                         show_result_pyplot)
+from mmpose.apis import inference_pose_model, init_pose_model, show_pose_result
 
 
 def main():
-    """Visualize the demo images.
+    """Visualize the demo images. The json_file containing box information
+    is required.
 
     """
     parser = ArgumentParser()
@@ -60,7 +60,7 @@ def main():
             pose_model, image_name, person_bboxes, format='xywh')
 
         # show the results
-        show_result_pyplot(
+        show_pose_result(
             pose_model,
             image_name,
             pose_results,
