@@ -35,29 +35,29 @@ def test_COCO_dataset():
         bbox_thr=1.0,
         use_gt_bbox=True,
         image_thr=0.0,
-        bbox_file='',
+        bbox_file='tests/data/test_coco_det_AP_H_56.json',
     )
-    # Test gt bbox
+    # Test det bbox
     data_cfg_copy = copy.deepcopy(data_cfg)
     data_cfg_copy['use_gt_bbox'] = False
     _ = dataset_class(
         ann_file='tests/data/test_coco.json',
-        img_prefix='',
-        data_cfg=data_cfg,
+        img_prefix='tests/data/',
+        data_cfg=data_cfg_copy,
         pipeline=[],
         test_mode=True)
 
     _ = dataset_class(
         ann_file='tests/data/test_coco.json',
-        img_prefix='',
-        data_cfg=data_cfg,
+        img_prefix='tests/data/',
+        data_cfg=data_cfg_copy,
         pipeline=[],
         test_mode=False)
 
-    # Test
+    # Test gt bbox
     custom_dataset = dataset_class(
         ann_file='tests/data/test_coco.json',
-        img_prefix='',
+        img_prefix='tests/data/',
         data_cfg=data_cfg,
         pipeline=[],
         test_mode=True)
@@ -90,12 +90,20 @@ def test_TRB_dataset():
         dataset_channel=channel_cfg['dataset_channel'],
         inference_channel=channel_cfg['inference_channel'])
 
-    # Test setting classes as a tuple
-    custom_dataset = dataset_class(
+    data_cfg_copy = copy.deepcopy(data_cfg)
+    _ = dataset_class(
         ann_file='tests/data/test_trb.json',
-        img_prefix='',
-        data_cfg=data_cfg,
+        img_prefix='tests/data/mpii/',
+        data_cfg=data_cfg_copy,
         pipeline=[],
         test_mode=False)
 
-    assert custom_dataset.test_mode is False
+    # Test gt bbox
+    custom_dataset = dataset_class(
+        ann_file='tests/data/test_trb.json',
+        img_prefix='tests/data/mpii/',
+        data_cfg=data_cfg,
+        pipeline=[],
+        test_mode=True)
+
+    assert custom_dataset.test_mode is True

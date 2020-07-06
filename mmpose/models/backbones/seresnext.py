@@ -1,12 +1,13 @@
 from mmcv.cnn import build_conv_layer, build_norm_layer
 
 from ..builder import BACKBONES
-from .resnet import Bottleneck as _Bottleneck
-from .resnet import ResLayer, ResNet
+from .resnet import ResLayer
+from .seresnet import SEBottleneck as _SEBottleneck
+from .seresnet import SEResNet
 
 
-class Bottleneck(_Bottleneck):
-    """Bottleneck block for ResNeXt.
+class SEBottleneck(_SEBottleneck):
+    """SEBottleneck block for SEResNeXt.
 
     Args:
         in_channels (int): Input channels of this block.
@@ -19,6 +20,7 @@ class Bottleneck(_Bottleneck):
         dilation (int): dilation of convolution. Default: 1
         downsample (nn.Module): downsample operation on identity branch.
             Default: None
+        se_ratio (int): Squeeze ratio in SELayer. Default: 16
         style (str): `pytorch` or `caffe`. If set to "pytorch", the stride-two
             layer is the 3x3 conv layer, otherwise the stride-two layer is
             the first 1x1 conv layer.
@@ -33,41 +35,39 @@ class Bottleneck(_Bottleneck):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 base_channels=64,
                  groups=32,
                  width_per_group=4,
+                 se_ratio=16,
                  **kwargs):
-        super(Bottleneck, self).__init__(in_channels, out_channels, **kwargs)
+        super(SEBottleneck, self).__init__(in_channels, out_channels, se_ratio,
+                                           **kwargs)
         self.groups = groups
         self.width_per_group = width_per_group
 
-        # For ResNet bottleneck, middle channels are determined by expansion
-        # and out_channels, but for ResNeXt bottleneck, it is determined by
-        # groups and width_per_group and the stage it is located in.
-        if groups != 1:
-            assert self.mid_channels % base_channels == 0
-            self.mid_channels = (
-                groups * width_per_group * self.mid_channels // base_channels)
+        if groups == 1:
+            width = self.mid_channels
+        else:
+            width = groups * width_per_group
 
         self.norm1_name, norm1 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=1)
+            self.norm_cfg, width, postfix=1)
         self.norm2_name, norm2 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=2)
+            self.norm_cfg, width, postfix=2)
         self.norm3_name, norm3 = build_norm_layer(
             self.norm_cfg, self.out_channels, postfix=3)
 
         self.conv1 = build_conv_layer(
             self.conv_cfg,
             self.in_channels,
-            self.mid_channels,
+            width,
             kernel_size=1,
             stride=self.conv1_stride,
             bias=False)
         self.add_module(self.norm1_name, norm1)
         self.conv2 = build_conv_layer(
             self.conv_cfg,
-            self.mid_channels,
-            self.mid_channels,
+            width,
+            width,
             kernel_size=3,
             stride=self.conv2_stride,
             padding=self.dilation,
@@ -77,19 +77,15 @@ class Bottleneck(_Bottleneck):
 
         self.add_module(self.norm2_name, norm2)
         self.conv3 = build_conv_layer(
-            self.conv_cfg,
-            self.mid_channels,
-            self.out_channels,
-            kernel_size=1,
-            bias=False)
+            self.conv_cfg, width, self.out_channels, kernel_size=1, bias=False)
         self.add_module(self.norm3_name, norm3)
 
 
 @BACKBONES.register_module()
-class ResNeXt(ResNet):
-    """ResNeXt backbone.
+class SEResNeXt(SEResNet):
+    """SEResNeXt backbone.
 
-    Please refer to the `paper <https://arxiv.org/abs/1611.05431>`_ for
+    Please refer to the `paper <https://arxiv.org/abs/1709.01507>`_ for
     details.
 
     Args:
@@ -97,6 +93,7 @@ class ResNeXt(ResNet):
         groups (int): Groups of conv2 in Bottleneck. Default: 32.
         width_per_group (int): Width per group of conv2 in Bottleneck.
             Default: 4.
+        se_ratio (int): Squeeze ratio in SELayer. Default: 16.
         in_channels (int): Number of input image channels. Default: 3.
         stem_channels (int): Output channels of the stem layer. Default: 64.
         num_stages (int): Stages of the network. Default: 4.
@@ -129,19 +126,16 @@ class ResNeXt(ResNet):
     """
 
     arch_settings = {
-        50: (Bottleneck, (3, 4, 6, 3)),
-        101: (Bottleneck, (3, 4, 23, 3)),
-        152: (Bottleneck, (3, 8, 36, 3))
+        50: (SEBottleneck, (3, 4, 6, 3)),
+        101: (SEBottleneck, (3, 4, 23, 3)),
+        152: (SEBottleneck, (3, 8, 36, 3))
     }
 
     def __init__(self, depth, groups=32, width_per_group=4, **kwargs):
         self.groups = groups
         self.width_per_group = width_per_group
-        super(ResNeXt, self).__init__(depth, **kwargs)
+        super(SEResNeXt, self).__init__(depth, **kwargs)
 
     def make_res_layer(self, **kwargs):
         return ResLayer(
-            groups=self.groups,
-            width_per_group=self.width_per_group,
-            base_channels=self.base_channels,
-            **kwargs)
+            groups=self.groups, width_per_group=self.width_per_group, **kwargs)

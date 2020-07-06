@@ -14,19 +14,36 @@ def single_gpu_test(model,
                     show=False,
                     out_dir=None,
                     show_score_thr=0.3):
+    """Test model with a single gpu.
+
+    This method tests model with a single gpu and displays test progress bar.
+
+    Args:
+        model (nn.Module): Model to be tested.
+        data_loader (nn.Dataloader): Pytorch data loader.
+        show (bool): show the results.
+        out_dir (str): Path to a directory where images are saved.
+            Default: None.
+        show_score_thr (float): the threshold of the keypoint score
+            for visualization.
+
+    Returns:
+        list: The prediction results.
+    """
+
     model.eval()
     results = []
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
     for i, data in enumerate(data_loader):
         with torch.no_grad():
-            result = model(return_loss=False, rescale=True, **data)
+            result = model(return_loss=False, **data)
         results.append(result)
 
         if show or out_dir:
             pass  # TODO
 
-        batch_size = data['img'][0].size(0)
+        batch_size = data['img'].size(0)
         for _ in range(batch_size):
             prog_bar.update()
     return results
@@ -59,13 +76,13 @@ def multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
         prog_bar = mmcv.ProgressBar(len(dataset))
     for i, data in enumerate(data_loader):
         with torch.no_grad():
-            result = model(return_loss=False, rescale=True, **data)
+            result = model(return_loss=False, **data)
         results.append(result)
 
         if rank == 0:
             batch_size = (
                 len(data['img_meta']._data)
-                if 'img_meta' in data else data['img'][0].size(0))
+                if 'img_meta' in data else data['img'].size(0))
             for _ in range(batch_size * world_size):
                 prog_bar.update()
 
@@ -78,6 +95,20 @@ def multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
 
 
 def collect_results_cpu(result_part, size, tmpdir=None):
+    """Collect results in cpu mode.
+
+    It saves the results on different gpus to 'tmpdir' and collects
+    them by the rank 0 worker.
+
+    Args:
+        result_part (list): Results to be collected
+        size (int): Result size.
+        tmpdir (str): Path of directory to save the temporary results from
+            different gpus under cpu mode. Default: None
+
+    Returns:
+        list: Ordered results.
+    """
     rank, world_size = get_dist_info()
     # create a tmp dir if it is not specified
     if tmpdir is None:
@@ -120,6 +151,19 @@ def collect_results_cpu(result_part, size, tmpdir=None):
 
 
 def collect_results_gpu(result_part, size):
+    """Collect results in gpu mode.
+
+    It encodes results to gpu tensors and use gpu communication for results
+    collection.
+
+    Args:
+        result_part (list): Results to be collected
+        size (int): Result size.
+
+    Returns:
+        list: Ordered results.
+    """
+
     rank, world_size = get_dist_info()
     # dump result part to tensor with pickle
     part_tensor = torch.tensor(

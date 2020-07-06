@@ -4,3 +4,7 @@ def init_model():
 
 def inference_model():
     pass
+
+
+def show_result_pyplot():
+    pass
