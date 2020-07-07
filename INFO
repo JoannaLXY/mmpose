@@ -1,2 +1,0 @@
-2020-07-06 20:23:06,002 - mmpose - INFO - Start running, host: SENSETIME\wangcan@g105e1800172, work_dir: /tmp/tmp_ifdrfcz
-2020-07-06 20:23:06,002 - mmpose - INFO - workflow: [('train', 1)], max: 5 epochs
