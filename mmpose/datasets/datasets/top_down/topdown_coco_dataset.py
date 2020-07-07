@@ -1,13 +1,13 @@
-import json
 import os
 from collections import OrderedDict, defaultdict
 
+import json_tricks as json
 import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from ....core.post_processing import oks_nms, soft_oks_nms
-from ...builder import DATASETS
+from ...registry import DATASETS
 from .topdown_base_dataset import TopDownBaseDataset
 
 
@@ -201,13 +201,23 @@ class TopDownCocoDataset(TopDownBaseDataset):
         if (not self.test_mode) and np.random.rand() < 0.3:
             center += 0.4 * (np.random.rand(2) - 0.5) * [w, h]
 
+        # if(not self.test_mode) and random.random() > 0.7:
+
+        #     # print ('in random.., centerori', center)
+        #     dice_x = random.random()
+        #     # print ('dice_x', dice_x)
+        #     center[0] = center[0] + (dice_x - 0.5) * w * 0.4
+        #     dice_y = random.random()
+        #     # print ('dice_y', dice_y)
+        #     center[1] = center[1] + (dice_y - 0.5) * h * 0.4
+
         if w > aspect_ratio * h:
             h = w * 1.0 / aspect_ratio
         elif w < aspect_ratio * h:
             w = h * aspect_ratio
 
-        # pixel std is 200.
-        scale = np.array([w / 200., h / 200.], dtype=np.float32)
+        # pixel std is 200.0
+        scale = np.array([w / 200.0, h / 200.0], dtype=np.float32)
 
         scale = scale * 1.25
 

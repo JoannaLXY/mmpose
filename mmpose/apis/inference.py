@@ -96,8 +96,8 @@ def _box2cs(cfg, box):
     elif w < aspect_ratio * h:
         w = h * aspect_ratio
 
-    # pixel std is 200.
-    scale = np.array([w / 200., h / 200.], dtype=np.float32)
+    # pixel std is 200.0
+    scale = np.array([w / 200.0, h / 200.0], dtype=np.float32)
 
     scale = scale * 1.25
 

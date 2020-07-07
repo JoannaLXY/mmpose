@@ -1,8 +1,7 @@
 from os.path import dirname, exists, join, relpath
 
 import torch
-
-from mmpose.core.optimizer import build_optimizer
+from mmcv.runner import build_optimizer
 
 
 def _get_config_directory():

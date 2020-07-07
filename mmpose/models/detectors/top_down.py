@@ -4,9 +4,8 @@ import torch
 from mmpose.core.evaluation import pose_pck_accuracy
 from mmpose.core.evaluation.acc import keypoints_from_heatmaps
 from mmpose.core.post_processing import flip_back
-from mmpose.models.builder import build_loss
 from .. import builder
-from ..builder import POSENETS
+from ..registry import POSENETS
 from .base import BasePose
 
 
@@ -39,7 +38,7 @@ class TopDown(BasePose):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
 
-        self.loss = build_loss(loss_pose)
+        self.loss = builder.build_loss(loss_pose)
         self.init_weights(pretrained=pretrained)
 
     @property
@@ -101,9 +100,7 @@ class TopDown(BasePose):
             return self.forward_test(img, img_metas, **kwargs)
 
     def forward_train(self, img, target, target_weight, img_metas, **kwargs):
-
         output = self.backbone(img)
-
         if self.with_keypoint:
             output = self.keypoint_head(output)
 
@@ -193,7 +190,7 @@ class TopDown(BasePose):
         all_preds[0, :, 2:3] = maxvals
         all_boxes[0, 0:2] = c[:, 0:2]
         all_boxes[0, 2:4] = s[:, 0:2]
-        all_boxes[0, 4] = np.prod(s * 200., 1)
+        all_boxes[0, 4] = np.prod(s * 200.0, 1)
         all_boxes[0, 5] = score
         image_path.extend(img_metas['image_file'])
 

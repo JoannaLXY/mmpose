@@ -9,11 +9,7 @@ import torch.distributed as dist
 from mmcv.runner import get_dist_info
 
 
-def single_gpu_test(model,
-                    data_loader,
-                    show=False,
-                    out_dir=None,
-                    show_score_thr=0.3):
+def single_gpu_test(model, data_loader):
     """Test model with a single gpu.
 
     This method tests model with a single gpu and displays test progress bar.
@@ -21,11 +17,7 @@ def single_gpu_test(model,
     Args:
         model (nn.Module): Model to be tested.
         data_loader (nn.Dataloader): Pytorch data loader.
-        show (bool): show the results.
-        out_dir (str): Path to a directory where images are saved.
-            Default: None.
-        show_score_thr (float): the threshold of the keypoint score
-            for visualization.
+
 
     Returns:
         list: The prediction results.
@@ -35,15 +27,13 @@ def single_gpu_test(model,
     results = []
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
-    for i, data in enumerate(data_loader):
+    for data in data_loader:
         with torch.no_grad():
             result = model(return_loss=False, **data)
         results.append(result)
 
-        if show or out_dir:
-            pass  # TODO
-
-        batch_size = data['img'].size(0)
+        # use the first key as main key to calculate the batch size
+        batch_size = len(next(iter(data.values())))
         for _ in range(batch_size):
             prog_bar.update()
     return results
@@ -74,15 +64,14 @@ def multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
     rank, world_size = get_dist_info()
     if rank == 0:
         prog_bar = mmcv.ProgressBar(len(dataset))
-    for i, data in enumerate(data_loader):
+    for data in data_loader:
         with torch.no_grad():
             result = model(return_loss=False, **data)
         results.append(result)
 
         if rank == 0:
-            batch_size = (
-                len(data['img_meta']._data)
-                if 'img_meta' in data else data['img'].size(0))
+            # use the first key as main key to calculate the batch size
+            batch_size = len(next(iter(data.values())))
             for _ in range(batch_size * world_size):
                 prog_bar.update()
 

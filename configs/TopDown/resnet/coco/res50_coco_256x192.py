@@ -39,7 +39,7 @@ channel_cfg = dict(
 # model settings
 model = dict(
     type='TopDown',
-    pretrained='slurm_test/resnet50-19c8e357.pth',
+    pretrained='models/pytorch/imagenet/resnet50-19c8e357.pth',
     # pretrained=None,
     backbone=dict(type='ResNet', depth=50),
     keypoint_head=dict(
@@ -116,7 +116,7 @@ valid_pipeline = [
 
 data_root = 'data/coco/'
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=64,
     workers_per_gpu=2,
     train=dict(
         type='TopDownCocoDataset',

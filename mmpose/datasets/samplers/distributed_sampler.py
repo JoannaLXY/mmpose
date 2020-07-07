@@ -3,6 +3,12 @@ from torch.utils.data import DistributedSampler as _DistributedSampler
 
 
 class DistributedSampler(_DistributedSampler):
+    """DistributedSampler inheriting from
+    `torch.utils.data.DistributedSampler`.
+
+    In pytorch of lower versions, there is no `shuffle` argument. This
+    child class will port one to DistributedSampler.
+    """
 
     def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True):
         super().__init__(dataset, num_replicas=num_replicas, rank=rank)
@@ -24,5 +30,4 @@ class DistributedSampler(_DistributedSampler):
         # subsample
         indices = indices[self.rank:self.total_size:self.num_replicas]
         assert len(indices) == self.num_samples
-
         return iter(indices)

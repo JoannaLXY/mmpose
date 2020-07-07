@@ -1,8 +1,6 @@
-# import os.path as osp
-# import numpy as np
 import mmcv
 
-from mmpose.datasets.builder import PIPELINES
+from ..registry import PIPELINES
 
 
 @PIPELINES.register_module()

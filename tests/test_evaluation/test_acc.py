@@ -26,7 +26,7 @@ def test_keypoints_from_heatmaps():
     heatmaps = np.ones((1, 1, 64, 64))
     heatmaps[0, 0, 31, 31] = 2
     center = np.array([[127, 127]])
-    scale = np.array([[64 / 200., 64 / 200.]])
+    scale = np.array([[64 / 200.0, 64 / 200.0]])
 
     preds, maxvals = keypoints_from_heatmaps(heatmaps, center, scale)
 
