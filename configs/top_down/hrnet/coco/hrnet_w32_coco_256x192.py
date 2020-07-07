@@ -143,7 +143,7 @@ valid_pipeline = [
         ]),
 ]
 
-data_root = 'data/coco/'
+data_root = 'data/coco'
 data = dict(
     samples_per_gpu=64,
     workers_per_gpu=2,
