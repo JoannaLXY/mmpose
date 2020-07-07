@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-node=Pose
+node=pat_earth
 numGPU=8
 allGPU=8
 
