@@ -201,16 +201,6 @@ class TopDownCocoDataset(TopDownBaseDataset):
         if (not self.test_mode) and np.random.rand() < 0.3:
             center += 0.4 * (np.random.rand(2) - 0.5) * [w, h]
 
-        # if(not self.test_mode) and random.random() > 0.7:
-
-        #     # print ('in random.., centerori', center)
-        #     dice_x = random.random()
-        #     # print ('dice_x', dice_x)
-        #     center[0] = center[0] + (dice_x - 0.5) * w * 0.4
-        #     dice_y = random.random()
-        #     # print ('dice_y', dice_y)
-        #     center[1] = center[1] + (dice_y - 0.5) * h * 0.4
-
         if w > aspect_ratio * h:
             h = w * 1.0 / aspect_ratio
         elif w < aspect_ratio * h:
