@@ -39,7 +39,6 @@ channel_cfg = dict(
 # model settings
 model = dict(
     type='TopDown',
-    # pretrained=None,
     pretrained='models/pytorch/imagenet/hrnet_w32-36af842e.pth',
     backbone=dict(
         type='HRNet',
