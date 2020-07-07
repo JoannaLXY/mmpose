@@ -7,10 +7,10 @@ import time
 import mmcv
 import torch
 from mmcv import Config, DictAction
-from mmcv.runner import init_dist
+from mmcv.runner import init_dist, set_random_seed
 
 from mmpose import __version__
-from mmpose.apis import set_random_seed, train_model
+from mmpose.apis import train_model
 from mmpose.datasets import build_dataset
 from mmpose.models import build_posenet
 from mmpose.utils import collect_env, get_root_logger

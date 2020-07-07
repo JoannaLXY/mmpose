@@ -5,7 +5,7 @@ from torchvision.transforms import functional as F
 
 from mmpose.core.post_processing import (affine_transform, fliplr_joints,
                                          get_affine_transform)
-from mmpose.datasets.builder import PIPELINES
+from ...registry import PIPELINES
 
 
 @PIPELINES.register_module()
@@ -128,7 +128,7 @@ class HalfBodyTransform():
         elif w < aspect_ratio * h:
             w = h * aspect_ratio
 
-        scale = np.array([w / 200., h / 200.], dtype=np.float32)
+        scale = np.array([w / 200.0, h / 200.0], dtype=np.float32)
         scale = scale * 1.5
         return center, scale
 

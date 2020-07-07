@@ -2,7 +2,7 @@ import torch.nn as nn
 from mmcv.cnn import (build_conv_layer, build_upsample_layer, constant_init,
                       normal_init)
 
-from ..builder import HEADS
+from ..registry import HEADS
 
 
 @HEADS.register_module()

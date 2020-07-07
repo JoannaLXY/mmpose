@@ -58,7 +58,7 @@ def _box2cs(box, image_size):
         h = w * 1.0 / aspect_ratio
     elif w < aspect_ratio * h:
         w = h * aspect_ratio
-    scale = np.array([w * 1.0 / 200., h * 1.0 / 200.], dtype=np.float32)
+    scale = np.array([w * 1.0 / 200.0, h * 1.0 / 200.0], dtype=np.float32)
     scale = scale * 1.25
     return center, scale
 

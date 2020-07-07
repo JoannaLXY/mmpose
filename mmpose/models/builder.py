@@ -1,10 +1,7 @@
-from mmcv.utils import Registry, build_from_cfg
+from mmcv.utils import build_from_cfg
 from torch import nn
 
-BACKBONES = Registry('backbone')
-HEADS = Registry('head')
-LOSSES = Registry('loss')
-POSENETS = Registry('posenet')
+from .registry import BACKBONES, HEADS, LOSSES, POSENETS
 
 
 def build(cfg, registry, default_args=None):

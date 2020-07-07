@@ -5,9 +5,11 @@ from functools import partial
 import numpy as np
 from mmcv.parallel import collate
 from mmcv.runner import get_dist_info
-from mmcv.utils import Registry, build_from_cfg
+from mmcv.utils import build_from_cfg
 from torch.utils.data import DataLoader
 
+from .dataset_wrappers import RepeatDataset
+from .registry import DATASETS
 from .samplers import DistributedSampler
 
 if platform.system() != 'Windows':
@@ -17,9 +19,6 @@ if platform.system() != 'Windows':
     hard_limit = rlimit[1]
     soft_limit = min(4096, hard_limit)
     resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))
-
-DATASETS = Registry('dataset')
-PIPELINES = Registry('pipeline')
 
 
 def build_dataset(cfg, default_args=None):
@@ -33,15 +32,11 @@ def build_dataset(cfg, default_args=None):
     Returns:
         Dataset: The constructed dataset.
     """
-    from .dataset_wrappers import ConcatDataset, RepeatDataset
-    if isinstance(cfg, (list, tuple)):
-        dataset = ConcatDataset([build_dataset(c, default_args) for c in cfg])
-    elif cfg['type'] == 'RepeatDataset':
+    if cfg['type'] == 'RepeatDataset':
         dataset = RepeatDataset(
             build_dataset(cfg['dataset'], default_args), cfg['times'])
     else:
         dataset = build_from_cfg(cfg, DATASETS, default_args)
-
     return dataset
 
 
@@ -53,6 +48,7 @@ def build_dataloader(dataset,
                      shuffle=True,
                      seed=None,
                      drop_last=True,
+                     pin_memory=True,
                      **kwargs):
     """Build PyTorch DataLoader.
 
@@ -70,6 +66,8 @@ def build_dataloader(dataset,
         shuffle (bool): Whether to shuffle the data at every epoch.
             Default: True.
         drop_last (bool): Whether to drop the last incomplete batch in epoch.
+            Default: True
+        pin_memory (bool): Whether to use pin_memory in DataLoader.
             Default: True
         kwargs: any keyword argument to be used to initialize DataLoader
 
@@ -98,6 +96,7 @@ def build_dataloader(dataset,
         sampler=sampler,
         num_workers=num_workers,
         collate_fn=partial(collate, samples_per_gpu=samples_per_gpu),
+        pin_memory=pin_memory,
         shuffle=shuffle,
         worker_init_fn=init_fn,
         drop_last=drop_last,

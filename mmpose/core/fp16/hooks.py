@@ -3,8 +3,9 @@ import copy
 import torch
 import torch.nn as nn
 from mmcv.runner import OptimizerHook
+from mmcv.utils import _BatchNorm
 
-from ..utils import allreduce_grads
+from ..utils.dist_utils import allreduce_grads
 from .utils import cast_tensor_type
 
 
@@ -131,7 +132,7 @@ def patch_norm_fp32(module):
         nn.Module: The converted module, the normalization layers have been
             converted to FP32.
     """
-    if isinstance(module, (nn.modules.batchnorm._BatchNorm, nn.GroupNorm)):
+    if isinstance(module, (_BatchNorm, nn.GroupNorm)):
         module.float()
         module.forward = patch_forward_method(module.forward, torch.half,
                                               torch.float)

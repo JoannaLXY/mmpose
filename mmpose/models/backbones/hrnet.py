@@ -5,14 +5,15 @@ from mmcv.runner import load_checkpoint
 from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.utils import get_root_logger
-from ..builder import BACKBONES
-from .base_backbone import BaseBackbone
-from .resnet import BasicBlock, Bottleneck
+from ..registry import BACKBONES
+from .resnet import BasicBlock, Bottleneck, get_expansion
 
 
 class HRModule(nn.Module):
-    """ High-Resolution Module for HRNet. In this module, every branch
-    has 4 BasicBlocks/Bottlenecks. Fusion/Exchange is in this module.
+    """High-Resolution Module for HRNet.
+
+    In this module, every branch has 4 BasicBlocks/Bottlenecks. Fusion/Exchange
+    is in this module.
     """
 
     def __init__(self,
@@ -21,10 +22,10 @@ class HRModule(nn.Module):
                  num_blocks,
                  in_channels,
                  num_channels,
-                 multiscale_output=True,
+                 multiscale_output=False,
                  with_cp=False,
                  conv_cfg=None,
-                 norm_cfg=dict(type='BN', momentum=0.1)):
+                 norm_cfg=dict(type='BN')):
         super(HRModule, self).__init__()
         self._check_branches(num_branches, num_blocks, in_channels,
                              num_channels)
@@ -39,7 +40,7 @@ class HRModule(nn.Module):
         self.branches = self._make_branches(num_branches, blocks, num_blocks,
                                             num_channels)
         self.fuse_layers = self._make_fuse_layers()
-        self.relu = nn.ReLU(inplace=False)
+        self.relu = nn.ReLU(inplace=True)
 
     def _check_branches(self, num_branches, num_blocks, in_channels,
                         num_channels):
@@ -67,35 +68,36 @@ class HRModule(nn.Module):
         downsample = None
         if stride != 1 or \
                 self.in_channels[branch_index] != \
-                num_channels[branch_index] * block.expansion:
+                num_channels[branch_index] * get_expansion(block):
             downsample = nn.Sequential(
                 build_conv_layer(
                     self.conv_cfg,
                     self.in_channels[branch_index],
-                    num_channels[branch_index] * block.expansion,
+                    num_channels[branch_index] * get_expansion(block),
                     kernel_size=1,
                     stride=stride,
                     bias=False),
-                build_norm_layer(self.norm_cfg, num_channels[branch_index] *
-                                 block.expansion)[1])
+                build_norm_layer(
+                    self.norm_cfg,
+                    num_channels[branch_index] * get_expansion(block))[1])
 
         layers = []
         layers.append(
             block(
                 self.in_channels[branch_index],
-                num_channels[branch_index],
-                stride,
+                num_channels[branch_index] * get_expansion(block),
+                stride=stride,
                 downsample=downsample,
                 with_cp=self.with_cp,
                 norm_cfg=self.norm_cfg,
                 conv_cfg=self.conv_cfg))
         self.in_channels[branch_index] = \
-            num_channels[branch_index] * block.expansion
+            num_channels[branch_index] * get_expansion(block)
         for i in range(1, num_blocks[branch_index]):
             layers.append(
                 block(
                     self.in_channels[branch_index],
-                    num_channels[branch_index],
+                    num_channels[branch_index] * get_expansion(block),
                     with_cp=self.with_cp,
                     norm_cfg=self.norm_cfg,
                     conv_cfg=self.conv_cfg))
@@ -167,13 +169,14 @@ class HRModule(nn.Module):
                                         bias=False),
                                     build_norm_layer(self.norm_cfg,
                                                      in_channels[j])[1],
-                                    nn.ReLU(inplace=False)))
+                                    nn.ReLU(inplace=True)))
                     fuse_layer.append(nn.Sequential(*conv_downsamples))
             fuse_layers.append(nn.ModuleList(fuse_layer))
 
         return nn.ModuleList(fuse_layers)
 
     def forward(self, x):
+        """Forward function."""
         if self.num_branches == 1:
             return [self.branches[0](x[0])]
 
@@ -193,7 +196,7 @@ class HRModule(nn.Module):
 
 
 @BACKBONES.register_module()
-class HRNet(BaseBackbone):
+class HRNet(nn.Module):
     """HRNet backbone.
 
     High-Resolution Representations for Labeling Pixels and Regions
@@ -201,12 +204,12 @@ class HRNet(BaseBackbone):
 
     Args:
         extra (dict): detailed configuration for each stage of HRNet.
-        in_channels (int): Number of input image channels. Normally 3.
+        in_channels (int): Number of input image channels. Default: 3.
         conv_cfg (dict): dictionary to construct and config conv layer.
         norm_cfg (dict): dictionary to construct and config norm layer.
         norm_eval (bool): Whether to set norm layers to eval mode, namely,
             freeze running stats (mean and var). Note: Effect on Batch Norm
-            and its variants only.
+            and its variants only. Default: False
         with_cp (bool): Use checkpoint or not. Using checkpoint will save some
             memory while slowing down the training speed.
         zero_init_residual (bool): whether to use zero init for last norm layer
@@ -259,7 +262,7 @@ class HRNet(BaseBackbone):
                  in_channels=3,
                  conv_cfg=None,
                  norm_cfg=dict(type='BN'),
-                 norm_eval=True,
+                 norm_eval=False,
                  with_cp=False,
                  zero_init_residual=False):
         super(HRNet, self).__init__()
@@ -303,8 +306,9 @@ class HRNet(BaseBackbone):
         num_blocks = self.stage1_cfg['num_blocks'][0]
 
         block = self.blocks_dict[block_type]
-        stage1_out_channels = num_channels * block.expansion
-        self.layer1 = self._make_layer(block, 64, num_channels, num_blocks)
+        stage1_out_channels = num_channels * get_expansion(block)
+        self.layer1 = self._make_layer(block, 64, stage1_out_channels,
+                                       num_blocks)
 
         # stage 2
         self.stage2_cfg = self.extra['stage2']
@@ -312,7 +316,9 @@ class HRNet(BaseBackbone):
         block_type = self.stage2_cfg['block']
 
         block = self.blocks_dict[block_type]
-        num_channels = [channel * block.expansion for channel in num_channels]
+        num_channels = [
+            channel * get_expansion(block) for channel in num_channels
+        ]
         self.transition1 = self._make_transition_layer([stage1_out_channels],
                                                        num_channels)
         self.stage2, pre_stage_channels = self._make_stage(
@@ -324,7 +330,9 @@ class HRNet(BaseBackbone):
         block_type = self.stage3_cfg['block']
 
         block = self.blocks_dict[block_type]
-        num_channels = [channel * block.expansion for channel in num_channels]
+        num_channels = [
+            channel * get_expansion(block) for channel in num_channels
+        ]
         self.transition2 = self._make_transition_layer(pre_stage_channels,
                                                        num_channels)
         self.stage3, pre_stage_channels = self._make_stage(
@@ -336,7 +344,9 @@ class HRNet(BaseBackbone):
         block_type = self.stage4_cfg['block']
 
         block = self.blocks_dict[block_type]
-        num_channels = [channel * block.expansion for channel in num_channels]
+        num_channels = [
+            channel * get_expansion(block) for channel in num_channels
+        ]
         self.transition3 = self._make_transition_layer(pre_stage_channels,
                                                        num_channels)
         self.stage4, pre_stage_channels = self._make_stage(
@@ -344,10 +354,12 @@ class HRNet(BaseBackbone):
 
     @property
     def norm1(self):
+        """nn.Module: the normalization layer named "norm1" """
         return getattr(self, self.norm1_name)
 
     @property
     def norm2(self):
+        """nn.Module: the normalization layer named "norm2" """
         return getattr(self, self.norm2_name)
 
     def _make_transition_layer(self, num_channels_pre_layer,
@@ -396,35 +408,34 @@ class HRNet(BaseBackbone):
 
         return nn.ModuleList(transition_layers)
 
-    def _make_layer(self, block, inplanes, planes, blocks, stride=1):
+    def _make_layer(self, block, in_channels, out_channels, blocks, stride=1):
         downsample = None
-        if stride != 1 or inplanes != planes * block.expansion:
+        if stride != 1 or in_channels != out_channels:
             downsample = nn.Sequential(
                 build_conv_layer(
                     self.conv_cfg,
-                    inplanes,
-                    planes * block.expansion,
+                    in_channels,
+                    out_channels,
                     kernel_size=1,
                     stride=stride,
                     bias=False),
-                build_norm_layer(self.norm_cfg, planes * block.expansion)[1])
+                build_norm_layer(self.norm_cfg, out_channels)[1])
 
         layers = []
         layers.append(
             block(
-                inplanes,
-                planes,
-                stride,
+                in_channels,
+                out_channels,
+                stride=stride,
                 downsample=downsample,
                 with_cp=self.with_cp,
                 norm_cfg=self.norm_cfg,
                 conv_cfg=self.conv_cfg))
-        inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(
                 block(
-                    inplanes,
-                    planes,
+                    out_channels,
+                    out_channels,
                     with_cp=self.with_cp,
                     norm_cfg=self.norm_cfg,
                     conv_cfg=self.conv_cfg))
@@ -458,13 +469,20 @@ class HRNet(BaseBackbone):
                     norm_cfg=self.norm_cfg,
                     conv_cfg=self.conv_cfg))
 
+            in_channels = hr_modules[-1].in_channels
+
         return nn.Sequential(*hr_modules), in_channels
 
     def init_weights(self, pretrained=None):
+        """Initialize the weights in backbone.
+
+        Args:
+            pretrained (str, optional): Path to pre-trained weights.
+                Defaults to None.
+        """
         if isinstance(pretrained, str):
             logger = get_root_logger()
             load_checkpoint(self, pretrained, strict=False, logger=logger)
-
         elif pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
@@ -482,7 +500,7 @@ class HRNet(BaseBackbone):
             raise TypeError('pretrained must be a str or None')
 
     def forward(self, x):
-
+        """Forward function."""
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)
@@ -518,9 +536,9 @@ class HRNet(BaseBackbone):
         return y_list
 
     def train(self, mode=True):
+        """Convert the model into training mode."""
         super(HRNet, self).train(mode)
         if mode and self.norm_eval:
             for m in self.modules():
-                # trick: eval have effect on BatchNorm only
                 if isinstance(m, _BatchNorm):
                     m.eval()

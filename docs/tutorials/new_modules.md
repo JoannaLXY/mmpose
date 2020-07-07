@@ -9,7 +9,7 @@ Assume you want to add a optimizer named as `MyOptimizer`, which has arguments `
 You need to first implement the new optimizer in a file, e.g., in `mmpose/core/optimizer/my_optimizer.py`:
 
 ```python
-from .registry import OPTIMIZERS
+from mmcv.runner import OPTIMIZERS
 from torch.optim import Optimizer
 
 
@@ -52,7 +52,7 @@ The users can do those fine-grained parameter tuning through customizing optimiz
 ```
 from mmcv.utils import build_from_cfg
 
-from mmpose.core.optimizer import OPTIMIZER_BUILDERS, OPTIMIZERS
+from mmcv.runner import OPTIMIZER_BUILDERS, OPTIMIZERS
 from mmpose.utils import get_root_logger
 from .cocktail_optimizer import CocktailOptimizer
 
@@ -158,7 +158,7 @@ The decorator `weighted_loss` enable the loss to be weighted for each element.
 import torch
 import torch.nn as nn
 
-from ..builder import LOSSES
+from mmpose.models import LOSSES
 
 def my_loss(pred, target):
     assert pred.size() == target.size() and target.numel() > 0

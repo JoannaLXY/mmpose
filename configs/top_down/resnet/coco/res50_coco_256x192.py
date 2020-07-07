@@ -113,26 +113,26 @@ valid_pipeline = [
         ]),
 ]
 
-data_root = 'data/coco/'
+data_root = 'data/coco'
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=64,
     workers_per_gpu=2,
     train=dict(
         type='TopDownCocoDataset',
-        ann_file=data_root + 'annotations/person_keypoints_train2017.json',
-        img_prefix=data_root + 'train2017/',
+        ann_file=f'{data_root}/annotations/person_keypoints_train2017.json',
+        img_prefix=f'{data_root}/train2017/',
         data_cfg=data_cfg,
         pipeline=train_pipeline),
     val=dict(
         type='TopDownCocoDataset',
-        ann_file=data_root + 'annotations/person_keypoints_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        ann_file=f'{data_root}/annotations/person_keypoints_val2017.json',
+        img_prefix=f'{data_root}/val2017/',
         data_cfg=data_cfg,
         pipeline=valid_pipeline),
     test=dict(
         type='TopDownCocoDataset',
-        ann_file=data_root + 'annotations/person_keypoints_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        ann_file=f'{data_root}/annotations/person_keypoints_val2017.json',
+        img_prefix=f'{data_root}/val2017/',
         data_cfg=data_cfg,
         pipeline=valid_pipeline),
 )

@@ -1,13 +1,13 @@
-import json
 import os
 from collections import OrderedDict, defaultdict
 
+import json_tricks as json
 import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from ....core.post_processing import oks_nms, soft_oks_nms
-from ...builder import DATASETS
+from ...registry import DATASETS
 from .topdown_base_dataset import TopDownBaseDataset
 
 
@@ -206,8 +206,8 @@ class TopDownCocoDataset(TopDownBaseDataset):
         elif w < aspect_ratio * h:
             w = h * aspect_ratio
 
-        # pixel std is 200.
-        scale = np.array([w / 200., h / 200.], dtype=np.float32)
+        # pixel std is 200.0
+        scale = np.array([w / 200.0, h / 200.0], dtype=np.float32)
 
         scale = scale * 1.25
 

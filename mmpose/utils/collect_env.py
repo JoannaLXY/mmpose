@@ -7,11 +7,13 @@ import cv2
 import mmcv
 import torch
 import torchvision
+from mmcv.utils import CUDA_HOME, get_build_config
 
 import mmpose
 
 
 def collect_env():
+    """Collect environment variables."""
     env_info = {}
     env_info['sys.platform'] = sys.platform
     env_info['Python'] = sys.version.replace('\n', '')
@@ -20,7 +22,6 @@ def collect_env():
     env_info['CUDA available'] = cuda_available
 
     if cuda_available:
-        from torch.utils.cpp_extension import CUDA_HOME
         env_info['CUDA_HOME'] = CUDA_HOME
 
         if CUDA_HOME is not None and osp.isdir(CUDA_HOME):
@@ -44,15 +45,13 @@ def collect_env():
     env_info['GCC'] = gcc
 
     env_info['PyTorch'] = torch.__version__
-    env_info['PyTorch compiling details'] = torch.__config__.show()
-
+    env_info['PyTorch compiling details'] = get_build_config()
     env_info['TorchVision'] = torchvision.__version__
 
     env_info['OpenCV'] = cv2.__version__
 
     env_info['MMCV'] = mmcv.__version__
-    env_info['mmpose'] = mmpose.__version__
-
+    env_info['MMPose'] = mmpose.__version__
     return env_info
 
 
