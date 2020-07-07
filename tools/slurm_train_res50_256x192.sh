@@ -4,7 +4,7 @@ node=Pose
 numGPU=8
 allGPU=8
 
-CONFIG=configs/TopDown/resnet/coco/res50_coco_256x192.py
+CONFIG=configs/top_down/resnet/coco/res50_coco_256x192.py
 WORK_DIR='work_dirs/res50_coco_256x192/'
 
 PY_ARGS=${@:5}

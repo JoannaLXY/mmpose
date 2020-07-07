@@ -4,7 +4,7 @@ node=pat_earth
 numGPU=8
 allGPU=8
 
-CONFIG=configs/TopDown/hrnet/coco/hrnet_w32_coco_256x192.py
+CONFIG=configs/top_down/hrnet/coco/hrnet_w32_coco_256x192.py
 WORK_DIR='work_dirs/hrnet_w32_coco_256x192/'
 
 PY_ARGS=${@:5}
