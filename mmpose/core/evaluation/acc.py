@@ -17,7 +17,7 @@ def _calc_distances(preds, targets, normalize):
         normalize (np.ndarray[N, 2]): Typical value is heatmap_size/10
 
     Returns:
-        distances (np.ndarray[K, N]): The normalized distances.
+        np.ndarray[K, N]: The normalized distances.
         If target keypoints are missing, the distance is -1.
     """
     N, K, _ = preds.shape
@@ -40,7 +40,7 @@ def _distance_acc(distances, thr=0.5):
         thr (float): Threshold of the distances.
 
     Returns:
-        (float): Percentage of distances below the threshold.
+        float: Percentage of distances below the threshold.
         If all target keypoints are missing, return -1.
     """
     distance_valid = distances != -1
@@ -63,8 +63,8 @@ def _get_max_preds(heatmaps):
         heatmaps (np.ndarray[N, K, H, W]): model predicted heatmaps.
 
     Returns:
-        preds (np.ndarray[N, K, 2]): Predicted keypoint location.
-        maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
+        np.ndarray[N, K, 2]: Predicted keypoint location.
+        np.ndarray[N, K, 1]: Scores (confidence) of the keypoints.
     """
     assert isinstance(heatmaps,
                       np.ndarray), ('heatmaps should be numpy.ndarray')
@@ -106,9 +106,9 @@ def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
         normalize (np.ndarray[N, 2]): Normalization factor for H&W.
 
     Returns:
-        acc (np.ndarray[K]): Accuracy of each keypoint.
-        avg_acc (float): Averaged accuracy across all keypoints.
-        cnt (int): Number of valid keypoints.
+        np.ndarray[K]: Accuracy of each keypoint.
+        float: Averaged accuracy across all keypoints.
+        int: Number of valid keypoints.
     """
     N, K, H, W = output.shape
     if K == 0:

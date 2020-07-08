@@ -9,7 +9,7 @@ def affine_transform(pt, trans_mat):
         trans_mat (np.ndarray): 2x3 matrix of an affine transform
 
     Returns:
-        Transformed points (np.ndarray)
+        np.ndarray: Transformed points.
     """
     assert len(pt) == 2
     new_pt = np.array(trans_mat) @ np.array([pt[0], pt[1], 1.])
@@ -28,7 +28,7 @@ def get_3rd_point(a, b):
         b (np.ndarray): point(x,y)
 
     Returns:
-        The 3rd point (np.ndarray)
+        np.ndarray: The 3rd point.
     """
     assert len(a) == 2
     assert len(b) == 2
@@ -46,7 +46,7 @@ def rotate_point(pt, angle_rad):
         angle_rad (float): rotation angle by radius
 
     Returns:
-        Rotated point (list[float])
+        list[float]: Rotated point.
     """
     assert len(pt) == 2
     sn, cs = np.sin(angle_rad), np.cos(angle_rad)

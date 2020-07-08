@@ -43,14 +43,14 @@ def init_pose_model(config, checkpoint=None, device='cuda:0'):
 
 
 def _xyxy2xywh(bbox_xyxy):
-    """transform the bbox format from x1y1x2y2 to xywh.
+    """Transform the bbox format from x1y1x2y2 to xywh.
 
     Args:
-        bbox_xyxy (ndarray): Bounding boxes (with scores), shaped (n, 4) or
+        bbox_xyxy (np.ndarray): Bounding boxes (with scores), shaped (n, 4) or
             (n, 5). (left, top, right, bottom, [score])
 
     Returns:
-        bbox_xywh (ndarray): Bounding boxes (with scores),
+        np.ndarray: Bounding boxes (with scores),
             shaped (n, 4) or (n, 5). (left, top, width, height, [score])
     """
     bbox_xywh = bbox_xyxy.copy()
@@ -60,13 +60,13 @@ def _xyxy2xywh(bbox_xyxy):
 
 
 def _xywh2xyxy(bbox_xywh):
-    """transform the bbox format from xywh to x1y1x2y2.
+    """Transform the bbox format from xywh to x1y1x2y2.
 
     Args:
         bbox_xywh (ndarray): Bounding boxes (with scores),
             shaped (n, 4) or (n, 5). (left, top, width, height, [score])
     Returns:
-        bbox (ndarray): Bounding boxes (with scores), shaped (n, 4) or
+        np.ndarray: Bounding boxes (with scores), shaped (n, 4) or
             (n, 5). (left, top, right, bottom, [score])
     """
     bbox_xyxy = bbox_xywh.copy()
@@ -82,8 +82,8 @@ def _box2cs(cfg, box):
         x, y, w, h
 
     Returns:
-        center (np.ndarray[float32](2,)): center of the bbox (x, y).
-        scale (np.ndarray[float32](2,)): scale of the bbox w & h.
+        np.ndarray[float32](2,): Center of the bbox (x, y).
+        np.ndarray[float32](2,): Scale of the bbox w & h.
     """
 
     x, y, w, h = box[:4]
@@ -111,12 +111,12 @@ def _inference_single_pose_model(model, image_name, bbox):
 
     Args:
         model (nn.Module): The loaded pose model.
-        image_name (str/ndarray):Image_name
-        bbox (list|ndarray): Bounding boxes (with scores),
+        image_name (str | np.ndarray):Image_name
+        bbox (list | np.ndarray): Bounding boxes (with scores),
             shaped (4, ) or (5, ). (left, top, width, height, [score])
 
     Returns:
-        predicted poses (ndarray[Kx3]): x, y, score
+        ndarray[Kx3]: Predicted pose x, y, score.
     """
     cfg = model.cfg
     device = next(model.parameters()).device
@@ -175,8 +175,8 @@ def inference_pose_model(model,
 
     Args:
         model (nn.Module): The loaded pose model.
-        image_name (str/ndarray): Image_name
-        person_bboxes: (ndarray[P x 4] or [P x 5]): Each person bounding box
+        image_name (str| np.ndarray): Image_name
+        person_bboxes: (np.ndarray[P x 4] or [P x 5]): Each person bounding box
             shaped (4, ) or (5, ), contains 4 box coordinates (and score).
         bbox_thr: Threshold for bounding boxes. Only bboxes with higher scores
             will be fed into the pose detector. If bbox_thr is None, ignore it.
@@ -185,7 +185,7 @@ def inference_pose_model(model,
             'xywh' means (left, top, width, height).
 
     Returns:
-        pose_results (list[dict]): Each item in the list is a dictionary,
+        list[dict]: Pose results: each item in the list is a dictionary,
             containing the bbox: (left, top, right, bottom, [score])
             and the pose (ndarray[Kx3]): x, y, score
     """
@@ -221,7 +221,7 @@ def show_pose_result(model,
 
     Args:
         model (nn.Module): The loaded detector.
-        img (str or np.ndarray): Image filename or loaded image.
+        img (str | np.ndarray): Image filename or loaded image.
         result (list[dict]): The results to draw over `img`
                 (bbox_result, pose_result).
         kpt_score_thr (float): The threshold to visualize the keypoints.
@@ -250,11 +250,11 @@ def save_pose_vis(model,
     Args:
         model (nn.Module): The loaded detector.
         img (str or np.ndarray): Image filename or loaded image.
-        result (Tensor or tuple): The results to draw over `img`
+        result (Tensor | tuple): The results to draw over `img`
                 (bbox_result, pose_result).
         kpt_score_thr (float): The threshold to visualize the keypoints.
         skeleton (list[tuple()]):
-        out_file (str or None): The filename to write the image.
+        out_file (str | None): The filename to write the image.
                 Default: None.
     """
     if hasattr(model, 'module'):
