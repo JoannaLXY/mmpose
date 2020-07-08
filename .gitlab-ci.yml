@@ -41,7 +41,7 @@ pages:
   stage: deploy
   script:
     - pip install mmcv
-    - pip install sphinx sphinx_rtd_theme recommonmark sphinx-markdown-tables matplotlib
+    - pip install sphinx sphinx_rtd_theme recommonmark sphinx-markdown-tables matplotlib pillow==6.2.2
     - pip install -e .
     - cd docs
     - make html
