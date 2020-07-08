@@ -40,7 +40,7 @@ def _distance_acc(distances, thr=0.5):
         thr (float): Threshold of the distances.
 
     Returns:
-        Percentage of distances below the threshold.
+        (float): Percentage of distances below the threshold.
         If all target keypoints are missing, return -1.
     """
     distance_valid = distances != -1
@@ -66,8 +66,8 @@ def _get_max_preds(heatmaps):
         preds (np.ndarray[N, K, 2]): Predicted keypoint location.
         maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
     """
-    assert isinstance(heatmaps, np.ndarray), \
-        'heatmaps should be numpy.ndarray'
+    assert isinstance(heatmaps, np.ndarray), (
+        'heatmaps should be numpy.ndarray')
     assert heatmaps.ndim == 4, 'batch_images should be 4-ndim'
 
     N, K, _, W = heatmaps.shape
@@ -86,7 +86,7 @@ def _get_max_preds(heatmaps):
 
 def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
     """Calculate the pose accuracy according to PCK, but uses ground truth
-    heatmap rather than x,y locations First value to be returned is average
+    heatmap rather than x,y locations. First value to be returned is average
     accuracy across 'idxs', followed by individual accuracies.
 
     Note:
