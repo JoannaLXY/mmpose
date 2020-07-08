@@ -18,7 +18,7 @@ def _check_keys_contain(result_keys, target_keys):
 
 
 def _check_flip(origin_imgs, result_imgs):
-    """Check if the origin_imgs are flipped correctly"""
+    """Check if the origin_imgs are flipped correctly."""
     h, w, c = origin_imgs.shape
     for i in range(h):
         for j in range(w):
@@ -37,8 +37,8 @@ def _check_rot90(origin_imgs, result_imgs):
 
 
 def _check_normalize(origin_imgs, result_imgs, norm_cfg):
-    """Check if the origin_imgs are normalized correctly into result_imgs
-     in a given norm_cfg."""
+    """Check if the origin_imgs are normalized correctly into result_imgs in a
+    given norm_cfg."""
     target_imgs = result_imgs.copy()
     for i in range(3):
         target_imgs[i] *= norm_cfg['std'][i]

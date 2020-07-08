@@ -76,8 +76,8 @@ class RandomFlip():
 
 @PIPELINES.register_module()
 class HalfBodyTransform():
-    """Data augmentation with half-body transform. Keep only
-        the upper body or the lower body at random.
+    """Data augmentation with half-body transform. Keep only the upper body or
+    the lower body at random.
 
     Args:
         num_joints_half_body (int): Threshold of performing
@@ -153,10 +153,10 @@ class HalfBodyTransform():
 class RandomScaleRotation():
     """Data augmentation with random scaling & rotating.
 
-        Args:
-            rot_factor (int): Rotating to [-2*rot_factor, 2*rot_factor]
-            scale_factor (float): Scaling to [1-scale_factor, 1+scale_factor]
-            rot_prob (float): Probability of random rotation.
+    Args:
+        rot_factor (int): Rotating to ``[-2*rot_factor, 2*rot_factor]``.
+        scale_factor (float): Scaling to ``[1-scale_factor, 1+scale_factor]``.
+        rot_prob (float): Probability of random rotation.
     """
 
     def __init__(self, rot_factor=40, scale_factor=0.5, rot_prob=0.6):

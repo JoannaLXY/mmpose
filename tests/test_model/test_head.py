@@ -6,7 +6,7 @@ from mmpose.models import MultiStageHead, SimpleHead
 
 
 def test_simple_head():
-    """Test simple head"""
+    """Test simple head."""
     with pytest.raises(TypeError):
         # extra
         _ = SimpleHead(out_channels=3, in_channels=512, extra=[])
@@ -88,7 +88,7 @@ def test_simple_head():
 
 
 def test_multistage_head():
-    """Test multistage head"""
+    """Test multistage head."""
     with pytest.raises(TypeError):
         # the number of layers should match
         _ = MultiStageHead(

@@ -23,7 +23,7 @@ class MultiStageHead(nn.Module):
         num_deconv_filters (list|tuple): Number of filters.
             If num_deconv_layers > 0, the length of
         num_deconv_kernels (list|tuple): Kernel sizes.
-   """
+    """
 
     def __init__(self,
                  in_channels=512,

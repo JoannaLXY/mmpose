@@ -30,8 +30,8 @@ def _calc_distances(preds, targets, normalize):
 
 
 def _distance_acc(distances, thr=0.5):
-    """Return the percentage below the distance threshold,
-    while ignoring distances values with -1.
+    """Return the percentage below the distance threshold, while ignoring
+    distances values with -1.
 
     Note:
         batch_size: N
@@ -85,10 +85,9 @@ def _get_max_preds(heatmaps):
 
 
 def pose_pck_accuracy(output, target, thr=0.5, normalize=None):
-    """Calculate the pose accuracy according to PCK,
-    but uses ground truth heatmap rather than x,y locations
-    First value to be returned is average accuracy across 'idxs',
-    followed by individual accuracies
+    """Calculate the pose accuracy according to PCK, but uses ground truth
+    heatmap rather than x,y locations First value to be returned is average
+    accuracy across 'idxs', followed by individual accuracies.
 
     Note:
         The PCK performance metric is the percentage of joints with
@@ -214,8 +213,8 @@ def keypoints_from_heatmaps(heatmaps,
                             post_process=True,
                             unbiased=False,
                             kernel=11):
-    """Get final keypoint predictions from heatmaps and transform them
-    back to the image.
+    """Get final keypoint predictions from heatmaps and transform them back to
+    the image.
 
     Note:
         batch_size: N

@@ -5,7 +5,7 @@ from mmcv.runner import build_optimizer
 
 
 def _get_config_directory():
-    """ Find the predefined detector config directory """
+    """Find the predefined detector config directory."""
     try:
         # Assume we are running in the source mmdetection repo
         repo_dpath = dirname(dirname(__file__))
@@ -20,9 +20,8 @@ def _get_config_directory():
 
 
 def test_config_build_detector():
-    """
-    Test that all detection models defined in the configs can be initialized.
-    """
+    """Test that all detection models defined in the configs can be
+    initialized."""
     from mmcv import Config
     from mmpose.models import build_posenet
 

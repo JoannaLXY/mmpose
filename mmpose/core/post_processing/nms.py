@@ -7,8 +7,7 @@ import numpy as np
 
 
 def nms(dets, thr):
-    """Greedily select boxes with high confidence and
-    overlap <= thr.
+    """Greedily select boxes with high confidence and overlap <= thr.
 
     Args:
         dets: [[x1, y1, x2, y2, score]].

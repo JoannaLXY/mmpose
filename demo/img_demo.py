@@ -7,10 +7,7 @@ from mmpose.apis import inference_pose_model, init_pose_model, show_pose_result
 
 
 def main():
-    """Visualize the demo images. The json_file containing box information
-    is required.
-
-    """
+    """Visualize the demo images."""
     parser = ArgumentParser()
     parser.add_argument('pose_config', help='Config file for detection')
     parser.add_argument('pose_checkpoint', help='Checkpoint file')

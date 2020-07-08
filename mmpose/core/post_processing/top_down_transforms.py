@@ -81,8 +81,8 @@ def flip_back(output_flipped, flip_pairs):
 
 
 def transform_preds(coords, center, scale, output_size):
-    """Get final keypoint predictions from heatmaps and transform them
-    back to the image.
+    """Get final keypoint predictions from heatmaps and transform them back to
+    the image.
 
     First calculate the transformation matrix from `get_affine_transform()`,
     then affine transform the predicted keypoint coordinates back
@@ -119,8 +119,7 @@ def get_affine_transform(center,
                          output_size,
                          shift=(0., 0.),
                          inv=False):
-    """Get the affine transform matrix, given the
-    center/scale/rot/output_size.
+    """Get the affine transform matrix, given the center/scale/rot/output_size.
 
     Args:
         center (np.ndarray[2, ]): Center of the bounding box (x, y).

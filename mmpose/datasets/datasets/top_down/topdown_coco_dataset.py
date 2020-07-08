@@ -110,14 +110,14 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return gt_db
 
     def _load_coco_keypoint_annotations(self):
-        """Ground truth bbox and keypoints """
+        """Ground truth bbox and keypoints."""
         gt_db = []
         for index in self.image_set_index:
             gt_db.extend(self._load_coco_keypoint_annotation_kernal(index))
         return gt_db
 
     def _load_coco_keypoint_annotation_kernal(self, index):
-        """load annotation from COCOAPI
+        """load annotation from COCOAPI.
 
         Note:
             bbox:[x1, y1, w, h]
@@ -178,9 +178,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return rec
 
     def _box2cs(self, box):
-        """Get box center & scale given box (x, y, w, h).
-
-        """
+        """Get box center & scale given box (x, y, w, h)."""
         x, y, w, h = box[:4]
         return self._xywh2cs(x, y, w, h)
 
@@ -284,7 +282,6 @@ class TopDownCocoDataset(TopDownBaseDataset):
 
         Returns:
             name_value (dict): Evaluation results for evaluation metrics.
-
         """
 
         res_file = os.path.join(res_folder, 'result_keypoints.json')
@@ -344,9 +341,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return name_value
 
     def _write_coco_keypoint_results(self, keypoints, res_file):
-        """Write results into a json file.
-
-        """
+        """Write results into a json file."""
         data_pack = [{
             'cat_id': self._class_to_coco_ind[cls],
             'cls_ind': cls_ind,
@@ -362,9 +357,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
             json.dump(results, f, sort_keys=True, indent=4)
 
     def _coco_keypoint_results_one_category_kernel(self, data_pack):
-        """Get coco keypoint results.
-
-        """
+        """Get coco keypoint results."""
         cat_id = data_pack['cat_id']
         keypoints = data_pack['keypoints']
         cat_results = []
@@ -392,9 +385,7 @@ class TopDownCocoDataset(TopDownBaseDataset):
         return cat_results
 
     def _do_python_keypoint_eval(self, res_file):
-        """Keypoint evaluation using COCOAPI
-
-        """
+        """Keypoint evaluation using COCOAPI."""
         coco_dt = self.coco.loadRes(res_file)
         coco_eval = COCOeval(self.coco, coco_dt, 'keypoints')
         coco_eval.params.useSegm = None

@@ -7,8 +7,9 @@ from mmpose.apis import inference_pose_model, init_pose_model, show_pose_result
 
 
 def main():
-    """Visualize the demo images. Using mmdet to detect the human.
+    """Visualize the demo images.
 
+    Using mmdet to detect the human.
     """
     parser = ArgumentParser()
     parser.add_argument('det_config', help='Config file for detection')

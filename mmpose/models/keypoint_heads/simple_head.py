@@ -7,9 +7,8 @@ from ..registry import HEADS
 
 @HEADS.register_module()
 class SimpleHead(nn.Module):
-    """Top-down model head of simplebaseline
-    paper ref: Bin Xiao. ``Simple Baselines for Human
-    Pose Estimation and Tracking.''
+    r"""Top-down model head in `Simple Baselines for Human Pose Estimation and
+    Tracking <https://arxiv.org/abs/1804.06208>`_.
 
     SimpleHead is consisted of (>=0) number of deconv layers
     and a simple conv2d layer.
@@ -23,7 +22,7 @@ class SimpleHead(nn.Module):
         num_deconv_filters (list|tuple): Number of filters.
             If num_deconv_layers > 0, the length of
         num_deconv_kernels (list|tuple): Kernel sizes.
-   """
+    """
 
     def __init__(self,
                  in_channels=512,

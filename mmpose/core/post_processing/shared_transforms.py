@@ -39,7 +39,7 @@ def get_3rd_point(a, b):
 
 
 def rotate_point(pt, angle_rad):
-    """Rotate a point by an angle
+    """Rotate a point by an angle.
 
     Args:
         pt (list[float]): 2 dimensional point point to be rotated
