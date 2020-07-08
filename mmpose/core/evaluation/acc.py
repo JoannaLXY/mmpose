@@ -66,8 +66,8 @@ def _get_max_preds(heatmaps):
         preds (np.ndarray[N, K, 2]): Predicted keypoint location.
         maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
     """
-    assert isinstance(heatmaps, np.ndarray), (
-        'heatmaps should be numpy.ndarray')
+    assert isinstance(heatmaps,
+                      np.ndarray), ('heatmaps should be numpy.ndarray')
     assert heatmaps.ndim == 4, 'batch_images should be 4-ndim'
 
     N, K, _, W = heatmaps.shape
