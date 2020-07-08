@@ -31,7 +31,7 @@ with open('../mmpose/VERSION', 'r') as f:
 # ones.
 extensions = [
     'sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.viewcode',
-    'recommonmark'
+    'recommonmark', 'sphinx_markdown_tables'
 ]
 
 autodoc_mock_imports = ['mmpose.version']
