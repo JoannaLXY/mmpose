@@ -60,7 +60,7 @@ def oks_iou(g, d, a_g, a_d, sigmas=None, vis_thr=None):
         vis_thr: threshold of the keypoint visibility.
 
     Returns:
-        The oks ious.
+        list: The oks ious.
     """
     if sigmas is None:
         sigmas = np.array([
@@ -96,7 +96,7 @@ def oks_nms(kpts_db, thr, sigmas=None, vis_thr=None):
         vis_thr: threshold of the keypoint visibility.
 
     Returns:
-         indexes to keep.
+        np.ndarray: indexes to keep.
     """
     if len(kpts_db) == 0:
         return []
@@ -132,7 +132,7 @@ def _rescore(overlap, scores, thr, type='gaussian'):
         thr: retain oks overlap < thr.
         type: 'gaussian' or 'linear'
     Returns:
-        indexes to keep
+        np.ndarray: indexes to keep
     """
     assert len(overlap) == len(scores)
     assert type in ['gaussian', 'linear']
@@ -156,7 +156,7 @@ def soft_oks_nms(kpts_db, thr, max_dets=20, sigmas=None, vis_thr=None):
         sigmas: Keypoint labelling uncertainty.
 
     Returns:
-        indexes to keep.
+        np.ndarray: indexes to keep.
     """
     if len(kpts_db) == 0:
         return []

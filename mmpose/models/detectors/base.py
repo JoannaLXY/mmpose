@@ -147,7 +147,7 @@ class BasePose(nn.Module):
                 Default: None.
 
         Returns:
-            img (Tensor): Only if not `show` or `out_file`
+            Tensor: Img: Only if not `show` or `out_file`.
         """
         img = mmcv.imread(img)
         img = img.copy()

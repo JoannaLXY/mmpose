@@ -12,6 +12,8 @@ from ...registry import PIPELINES
 class ToTensor():
     """Transform image to Tensor.
 
+    Required key: 'img'. Modifies key: 'img'.
+
     Args:
         results (dict): contain all information about training.
     """
@@ -24,6 +26,8 @@ class ToTensor():
 @PIPELINES.register_module()
 class NormalizeTensor():
     """Normalize the Tensor image (CxHxW), with mean and std.
+
+    Required key: 'img'. Modifies key: 'img'.
 
     Args:
         mean (list[float]): Mean values of 3 channels.
@@ -43,6 +47,10 @@ class NormalizeTensor():
 @PIPELINES.register_module()
 class RandomFlip():
     """Data augmentation with random image flip.
+
+    Required keys: 'img', 'joints_3d', 'joints_3d_visible', 'center' and 
+    'ann_info'. Modifies key: 'img', 'joints_3d', 'joints_3d_visible' and 
+    'center'.
 
     Args:
         flip (bool): Option to perform random flip.
@@ -78,6 +86,9 @@ class RandomFlip():
 class HalfBodyTransform():
     """Data augmentation with half-body transform. Keep only the upper body or
     the lower body at random.
+
+    Required keys: 'joints_3d', 'joints_3d_visible', and 'ann_info'. 
+    Modifies key: 'scale' and 'center'.
 
     Args:
         num_joints_half_body (int): Threshold of performing
@@ -153,6 +164,8 @@ class HalfBodyTransform():
 class RandomScaleRotation():
     """Data augmentation with random scaling & rotating.
 
+    Required key: 'scale'. Modifies key: 'scale' and 'rotation'.
+
     Args:
         rot_factor (int): Rotating to ``[-2*rot_factor, 2*rot_factor]``.
         scale_factor (float): Scaling to ``[1-scale_factor, 1+scale_factor]``.
@@ -184,7 +197,12 @@ class RandomScaleRotation():
 
 @PIPELINES.register_module()
 class AffineTransform():
-    """Affine transform the image to make input."""
+    """Affine transform the image to make input.
+
+    Required keys:'img', 'joints_3d', 'joints_3d_visible', 'ann_info','scale',
+    'rotation' and 'center'. Modified keys:'img', 'joints_3d', and 
+    'joints_3d_visible'.
+    """
 
     def __call__(self, results):
         image_size = results['ann_info']['image_size']
@@ -216,6 +234,9 @@ class AffineTransform():
 @PIPELINES.register_module()
 class GenerateTarget():
     """Generate the target heatmap.
+
+    Required keys: 'joints_3d', 'joints_3d_visible', 'ann_info'. 
+    Modified keys: 'target', and 'target_weight'.
 
     Args:
         sigma: Sigma of heatmap gaussian.
