@@ -48,8 +48,8 @@ class NormalizeTensor():
 class RandomFlip():
     """Data augmentation with random image flip.
 
-    Required keys: 'img', 'joints_3d', 'joints_3d_visible', 'center' and 
-    'ann_info'. Modifies key: 'img', 'joints_3d', 'joints_3d_visible' and 
+    Required keys: 'img', 'joints_3d', 'joints_3d_visible', 'center' and
+    'ann_info'. Modifies key: 'img', 'joints_3d', 'joints_3d_visible' and
     'center'.
 
     Args:
@@ -87,7 +87,7 @@ class HalfBodyTransform():
     """Data augmentation with half-body transform. Keep only the upper body or
     the lower body at random.
 
-    Required keys: 'joints_3d', 'joints_3d_visible', and 'ann_info'. 
+    Required keys: 'joints_3d', 'joints_3d_visible', and 'ann_info'.
     Modifies key: 'scale' and 'center'.
 
     Args:
@@ -200,7 +200,7 @@ class AffineTransform():
     """Affine transform the image to make input.
 
     Required keys:'img', 'joints_3d', 'joints_3d_visible', 'ann_info','scale',
-    'rotation' and 'center'. Modified keys:'img', 'joints_3d', and 
+    'rotation' and 'center'. Modified keys:'img', 'joints_3d', and
     'joints_3d_visible'.
     """
 
@@ -235,7 +235,7 @@ class AffineTransform():
 class GenerateTarget():
     """Generate the target heatmap.
 
-    Required keys: 'joints_3d', 'joints_3d_visible', 'ann_info'. 
+    Required keys: 'joints_3d', 'joints_3d_visible', 'ann_info'.
     Modified keys: 'target', and 'target_weight'.
 
     Args:
