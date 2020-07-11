@@ -1,5 +1,9 @@
 # MMPose
 
+<div align="center">
+  <img src="demo/demo.gif" width="600px"/>
+</div>
+
 ## Documentation
 
 http://open-mmlab.pages.gitlab.sz.sensetime.com/mmpose
